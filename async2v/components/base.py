@@ -24,15 +24,28 @@ class Component:
     def id(self) -> str:
         return self.__class__.__name__ + str(self._numeric_id)
 
+    async def setup(self):
+        pass
+
+    async def cleanup(self):
+        pass
+
+
+class IteratingComponent(Component):
+
     @property
     def target_fps(self) -> int:
-        return 1
-
-    def setup(self):
-        pass
+        raise NotImplementedError
 
     async def process(self):
         raise NotImplementedError
 
-    def cleanup(self):
-        pass
+
+class EventDrivenComponent(Component):
+
+    async def process(self):
+        raise NotImplementedError
+
+
+class BareComponent(Component):
+    pass

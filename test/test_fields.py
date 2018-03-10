@@ -11,11 +11,11 @@ from async2v.fields import Latest, Event, Buffer, History
 def test_latest_field(input_data, more_input_data, expected_value, expected_updated):
     field = Latest('key')
     for v in input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
     for v in more_input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
 
     assert field.updated == expected_updated
     assert field.value == expected_value
@@ -29,11 +29,11 @@ def test_latest_field(input_data, more_input_data, expected_value, expected_upda
 def test_buffer_field(input_data, more_input_data, expected_values, expected_updated):
     field = Buffer('key')
     for v in input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
     for v in more_input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
 
     assert field.updated == expected_updated
     assert field.values == expected_values
@@ -47,11 +47,11 @@ def test_buffer_field(input_data, more_input_data, expected_values, expected_upd
 def test_history_field(input_data, more_input_data, expected_values, expected_updated):
     field = History('key', 3)
     for v in input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
     for v in more_input_data:
-        field._set(Event('key', v))
-    field._switch()
+        field.set(Event('key', v))
+    field.switch()
 
     assert field.updated == expected_updated
     assert field.values == expected_values

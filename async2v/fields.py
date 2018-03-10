@@ -16,16 +16,31 @@ class Event(Generic[T]):
         self.value = value
 
 
-class DoubleBufferedField(Generic[T]):
-    def __init__(self, key: str, trigger: bool = False):
+class InputField(Generic[T]):
+    def __init__(self, key: str):
         self._key = key  # type: str
-        self._trigger = trigger  # type: bool
-        self._input_updated = asyncio.Event()  # type: asyncio.Event
-        self._updated = False  # type: bool
 
     @property
     def key(self) -> str:
         return self._key
+
+    def set(self, new: Event[T]) -> None:
+        """
+        Push new event into the field.
+
+        This method is used by the framework to push events to components.
+        You should not need to call this method from your production code.
+        """
+        raise NotImplementedError
+
+
+class DoubleBufferedField(InputField[T], Generic[T]):
+    def __init__(self, key: str, trigger: bool = False):
+        super().__init__(key)
+        self._key = key  # type: str
+        self._trigger = trigger  # type: bool
+        self._input_updated = asyncio.Event()  # type: asyncio.Event
+        self._updated = False  # type: bool
 
     @property
     def trigger(self) -> bool:
@@ -35,14 +50,20 @@ class DoubleBufferedField(Generic[T]):
     def updated(self) -> bool:
         return self._updated
 
-    def _set(self, new: Event[T]) -> None:
+    def set(self, new: Event[T]) -> None:
         self._input_updated.set()
         self._set_event(new)
 
     def _set_event(self, new: Event[T]) -> None:
         raise NotImplementedError
 
-    def _switch(self) -> None:
+    def switch(self) -> None:
+        """
+        Switch the double buffer.
+
+        This method is used by the framework to make new values available for the next processing step.
+        You should not need to call this method from your production code.
+        """
         self._updated = self._input_updated.is_set()
         self._switch_events()
         self._input_updated.clear()
@@ -51,7 +72,7 @@ class DoubleBufferedField(Generic[T]):
         raise NotImplementedError
 
 
-class Latest(DoubleBufferedField, Generic[T]):
+class Latest(DoubleBufferedField[T], Generic[T]):
     def __init__(self, key: str, trigger: bool = False):
         super().__init__(key, trigger=trigger)
         self._input_event = None  # type: Event[T]
@@ -78,7 +99,7 @@ class Latest(DoubleBufferedField, Generic[T]):
         return self._event.timestamp
 
 
-class Buffer(DoubleBufferedField[T]):
+class Buffer(DoubleBufferedField[T], Generic[T]):
 
     def __init__(self, key: str, maxlen: int = None, trigger: bool = False):
         super().__init__(key, trigger=trigger)
@@ -109,7 +130,7 @@ class Buffer(DoubleBufferedField[T]):
         self._input_buffer.clear()
 
 
-class History(DoubleBufferedField[T]):
+class History(DoubleBufferedField[T], Generic[T]):
 
     def __init__(self, key: str, maxlen: int, trigger: bool = False):
         super().__init__(key, trigger=trigger)
@@ -139,12 +160,30 @@ class History(DoubleBufferedField[T]):
         self._timestamps = [e.timestamp for e in self._events]
 
 
+class InputQueue(InputField[T], Generic[T]):
+
+    def __init__(self, key: str, maxlen: int = None):
+        super().__init__(key)
+        self._queue = deque(maxlen=maxlen)
+
+    def set(self, new: Event[T]) -> None:
+        pass
+
+    @property
+    def queue(self):
+        return self._queue
+
+
 class Output(Generic[T]):
     def __init__(self, key: str):
         self._key = key  # type: str
         self._queue = None  # type: queue.Queue
 
-    def _set_queue(self, queue_: Optional[queue.Queue]):
+    def set_queue(self, queue_: Optional[queue.Queue]):
+        """
+        This method is used by the framework to inject the central application queue.
+        You should not need to call this method from your production code.
+        """
         self._queue = queue_
 
     @property

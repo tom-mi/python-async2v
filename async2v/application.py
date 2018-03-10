@@ -8,7 +8,7 @@ import logwood
 from async2v.components.base import Component
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT
 from async2v.fields import DoubleBufferedField, Output, Event
-from async2v.runner import ComponentRunner
+from async2v.runner import create_component_runner, BaseComponentRunner, EventDrivenComponentRunner
 
 
 class Application(Thread):
@@ -20,8 +20,9 @@ class Application(Thread):
         self._fields = {}  # type: Dict[str, List[DoubleBufferedField]]
         self._outputs = []  # type: [Output]
         self._queue = queue.Queue()  # type: queue.Queue
-        self._component_runners = {}  # type: Dict[Component, ComponentRunner]
+        self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
         self._component_runner_tasks = {}  # type: Dict[Component, asyncio.Task]
+        self._runners_by_triggering_fields = {}  # type: Dict[str, List[EventDrivenComponentRunner]]
         self._loop = asyncio.new_event_loop()  # type: asyncio.AbstractEventLoop
         self._stopped = asyncio.Event(loop=self._loop)
 
@@ -48,6 +49,7 @@ class Application(Thread):
 
     async def _handle_events(self):
         while not self._stopped.is_set():
+            # noinspection PyBroadException
             try:
                 event = await self._loop.run_in_executor(None, lambda: self._queue.get(timeout=0.1))  # type: Event
                 if event.key == SHUTDOWN_EVENT:
@@ -55,9 +57,15 @@ class Application(Thread):
                 elif event.key == REGISTER_EVENT:
                     self._do_register(event.value)
                 for field in self._fields.get(event.key, []):
-                    field._set(event)
+                    field.set(event)
+                for runner in self._runners_by_triggering_fields.get(event.key, []):
+                    runner.trigger()
+
             except queue.Empty:
                 pass
+            except Exception:
+                self.logger.exception('Unexpected error')
+                self._shutdown()
 
     def _do_register(self, component: Component) -> None:
         self.logger.info('Registering {}', component.id)
@@ -73,17 +81,27 @@ class Application(Thread):
                 if field.key not in self._fields:
                     self._fields[field.key] = []
                 self._fields[field.key].append(field)
+
             elif isinstance(field, Output):
                 self._outputs.append(field)
-                field._set_queue(self._queue)
+                field.set_queue(self._queue)
 
     def _start_component_runner(self, component: Component) -> None:
         self.logger.debug('Starting component runner for component {}', component.id)
-        runner = ComponentRunner(component, self._queue)
+        runner = create_component_runner(component, self._queue)
+        if isinstance(runner, EventDrivenComponentRunner):
+            self._register_events(runner, component)
         self._component_runners[component] = runner
         task = self._loop.create_task(runner.run())
         task.add_done_callback(self._error_handling_done_callback(component.logger))
         self._component_runner_tasks[component] = task
+
+    def _register_events(self, runner: EventDrivenComponentRunner, component: Component):
+        for field in vars(component).values():
+            if isinstance(field, DoubleBufferedField):
+                if field.key not in self._runners_by_triggering_fields:
+                    self._runners_by_triggering_fields[field.key] = []
+                self._runners_by_triggering_fields[field.key].append(runner)
 
     def _do_deregister(self, component: Component) -> None:
         if component not in self._components:
@@ -92,6 +110,8 @@ class Application(Thread):
         runner.stop()
         self._components.remove(component)
         self._deregister_fields(component)
+        if isinstance(runner, EventDrivenComponentRunner):
+            self._deregister_events(runner, component)
 
     def _deregister_fields(self, component: Component) -> None:
         for key, value in vars(component).items():
@@ -101,7 +121,14 @@ class Application(Thread):
                     del self._fields[key]
             elif isinstance(value, Output):
                 self._outputs.remove(value)
-                value._set_queue(None)
+                value.set_queue(None)
+
+    def _deregister_events(self, runner: EventDrivenComponentRunner, component: Component):
+        for field in vars(component).values():
+            if isinstance(field, DoubleBufferedField):
+                self._runners_by_triggering_fields[field.key].remove(runner)
+                if len(self._runners_by_triggering_fields[field.key]):
+                    del self._runners_by_triggering_fields[field.key]
 
     async def _shutdown(self):
         self.logger.info('Initiating shutdown')
@@ -109,6 +136,7 @@ class Application(Thread):
             runner.stop()
 
         for component, task in self._component_runner_tasks.items():
+            # noinspection PyBroadException
             try:
                 await asyncio.wait_for(task, timeout=5)
             except asyncio.TimeoutError:
