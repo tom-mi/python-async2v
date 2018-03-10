@@ -1,19 +1,11 @@
 import asyncio
 import queue
-import time
 from collections import deque
 from typing import TypeVar, Generic, Optional
 
+from async2v.event import Event
+
 T = TypeVar('T')
-
-
-class Event(Generic[T]):
-    def __init__(self, key: str, value: T = None, timestamp: float = None):
-        if timestamp is None:
-            timestamp = time.time()
-        self.key = key
-        self.timestamp = timestamp
-        self.value = value
 
 
 class InputField(Generic[T]):

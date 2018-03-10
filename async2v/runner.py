@@ -40,7 +40,7 @@ def _ensure_at_least_one_triggering_field(component):
 
 def _ensure_no_double_buffered_fields(component):
     double_buffered_fields = [f for f in vars(component).values() if isinstance(f, DoubleBufferedField)]
-    if len(double_buffered_fields) == 0:
+    if len(double_buffered_fields) > 0:
         raise ConfigurationError(f'BareComponent {component.id} cannot have double-buffered fields')
 
 

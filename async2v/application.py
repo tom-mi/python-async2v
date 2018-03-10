@@ -6,8 +6,8 @@ from typing import List, Dict
 import logwood
 
 from async2v.components.base import Component
-from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT
-from async2v.fields import DoubleBufferedField, Output, Event
+from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event
+from async2v.fields import DoubleBufferedField, Output
 from async2v.runner import create_component_runner, BaseComponentRunner, EventDrivenComponentRunner
 
 

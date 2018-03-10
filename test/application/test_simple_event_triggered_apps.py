@@ -17,6 +17,21 @@ def test_source_to_sink(app):
     assert sink.data == data
 
 
+def test_source_to_filter_to_sink(app):
+    data = [1, 2, 3]
+    source = SampleSource(data, name='src')
+    square_filter = SquareFilter('src', 'dst')
+    sink = SampleSink(name='dst')
+    app.register(sink)
+    app.register(square_filter)
+    app.register(source)
+    app.start()
+    time.sleep(1)
+    app.stop()
+
+    assert sink.data == [d * d for d in data]
+
+
 class SampleSource(IteratingComponent):
     target_fps = 10
 
@@ -40,11 +55,10 @@ class SampleSink(EventDrivenComponent):
         self.data.append(self.input.value)
 
 
-class SquareFilter(Component):
+class SquareFilter(EventDrivenComponent):
     def __init__(self, input_, output):
         self.input = Latest(input_, trigger=True)
         self.output = Output(output)
 
     async def process(self):
-        if self.input.updated:
-            self.output.push(self.input.value ** 2)
+        self.output.push(self.input.value ** 2)

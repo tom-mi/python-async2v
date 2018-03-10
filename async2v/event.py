@@ -16,3 +16,6 @@ class Event(Generic[T]):
         self.key = key
         self.timestamp = timestamp
         self.value = value
+
+    def __str__(self):
+        return f'Event({self.key}, {self.value})'
