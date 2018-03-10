@@ -1,0 +1,155 @@
+import asyncio
+import queue
+import time
+from collections import deque
+from typing import TypeVar, Generic, Optional
+
+T = TypeVar('T')
+
+
+class Event(Generic[T]):
+    def __init__(self, key: str, value: T = None, timestamp: float = None):
+        if timestamp is None:
+            timestamp = time.time()
+        self.key = key
+        self.timestamp = timestamp
+        self.value = value
+
+
+class DoubleBufferedField(Generic[T]):
+    def __init__(self, key: str, trigger: bool = False):
+        self._key = key  # type: str
+        self._trigger = trigger  # type: bool
+        self._input_updated = asyncio.Event()  # type: asyncio.Event
+        self._updated = False  # type: bool
+
+    @property
+    def key(self) -> str:
+        return self._key
+
+    @property
+    def trigger(self) -> bool:
+        return self._trigger
+
+    @property
+    def updated(self) -> bool:
+        return self._updated
+
+    def _set(self, new: Event[T]) -> None:
+        self._input_updated.set()
+        self._set_event(new)
+
+    def _set_event(self, new: Event[T]) -> None:
+        raise NotImplementedError
+
+    def _switch(self) -> None:
+        self._updated = self._input_updated.is_set()
+        self._switch_events()
+        self._input_updated.clear()
+
+    def _switch_events(self) -> None:
+        raise NotImplementedError
+
+
+class Latest(DoubleBufferedField, Generic[T]):
+    def __init__(self, key: str, trigger: bool = False):
+        super().__init__(key, trigger=trigger)
+        self._input_event = None  # type: Event[T]
+        self._event = None  # type: Event[T]
+
+    def _set_event(self, new: Event[T]) -> None:
+        self._input_event = new
+
+    def _switch_events(self) -> None:
+        self._event = self._input_event
+
+    @property
+    def event(self) -> Event[T]:
+        return self._event
+
+    @property
+    def value(self) -> Optional[T]:
+        if self._event is None:
+            return None
+        return self._event.value
+
+    @property
+    def timestamp(self) -> float:
+        return self._event.timestamp
+
+
+class Buffer(DoubleBufferedField[T]):
+
+    def __init__(self, key: str, maxlen: int = None, trigger: bool = False):
+        super().__init__(key, trigger=trigger)
+        self._input_buffer = deque(maxlen=maxlen)
+        self._events = []  # type: [Event[T]]
+        self._values = []  # type: [T]
+        self._timestamps = []  # type: [float]
+
+    @property
+    def events(self) -> [Event[T]]:
+        return self._events
+
+    @property
+    def values(self) -> [T]:
+        return self._values
+
+    @property
+    def timestamps(self) -> [float]:
+        return self._timestamps
+
+    def _set_event(self, new: T) -> None:
+        self._input_buffer.append(new)
+
+    def _switch_events(self):
+        self._events = list(self._input_buffer)
+        self._values = [e.value for e in self._events]
+        self._timestamps = [e.timestamp for e in self._events]
+        self._input_buffer.clear()
+
+
+class History(DoubleBufferedField[T]):
+
+    def __init__(self, key: str, maxlen: int, trigger: bool = False):
+        super().__init__(key, trigger=trigger)
+        self._input_buffer = deque(maxlen=maxlen)
+        self._events = []  # type: [Event[T]]
+        self._values = []  # type: [T]
+        self._timestamps = []  # type: [float]
+
+    @property
+    def events(self) -> [Event[T]]:
+        return self._events
+
+    @property
+    def values(self) -> [T]:
+        return self._values
+
+    @property
+    def timestamps(self) -> [float]:
+        return self._timestamps
+
+    def _set_event(self, new: Event[T]) -> None:
+        self._input_buffer.append(new)
+
+    def _switch_events(self) -> None:
+        self._events = list(self._input_buffer)
+        self._values = [e.value for e in self._events]
+        self._timestamps = [e.timestamp for e in self._events]
+
+
+class Output(Generic[T]):
+    def __init__(self, key: str):
+        self._key = key  # type: str
+        self._queue = None  # type: queue.Queue
+
+    def _set_queue(self, queue_: Optional[queue.Queue]):
+        self._queue = queue_
+
+    @property
+    def key(self) -> str:
+        return self._key
+
+    def push(self, value: T, timestamp: float = None):
+        self._queue.put(Event(self._key, value, timestamp))
