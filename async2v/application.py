@@ -7,7 +7,7 @@ import logwood
 
 from async2v.components.base import Component
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event
-from async2v.fields import DoubleBufferedField, Output
+from async2v.fields import DoubleBufferedField, Output, InputField
 from async2v.runner import create_component_runner, BaseComponentRunner, EventDrivenComponentRunner
 
 
@@ -17,7 +17,7 @@ class Application(Thread):
         super().__init__()
         self.logger = logwood.get_logger(self.__class__.__name__)
         self._components = []  # type: [Component]
-        self._fields = {}  # type: Dict[str, List[DoubleBufferedField]]
+        self._fields = {}  # type: Dict[str, List[InputField]]
         self._outputs = []  # type: [Output]
         self._queue = queue.Queue()  # type: queue.Queue
         self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
@@ -30,8 +30,9 @@ class Application(Thread):
         self._queue.put(Event(SHUTDOWN_EVENT))
         self.join()
 
-    def register(self, component: Component) -> None:
-        self._queue.put(Event(REGISTER_EVENT, component))
+    def register(self, *components: Component) -> None:
+        for component in components:
+            self._queue.put(Event(REGISTER_EVENT, component))
 
     def run(self):
         asyncio.set_event_loop(self._loop)
@@ -77,7 +78,7 @@ class Application(Thread):
 
     def _register_fields(self, component: Component) -> None:
         for field in vars(component).values():
-            if isinstance(field, DoubleBufferedField):
+            if isinstance(field, InputField):
                 if field.key not in self._fields:
                     self._fields[field.key] = []
                 self._fields[field.key].append(field)
@@ -115,7 +116,7 @@ class Application(Thread):
 
     def _deregister_fields(self, component: Component) -> None:
         for key, value in vars(component).items():
-            if isinstance(value, DoubleBufferedField):
+            if isinstance(value, InputField):
                 self._fields[key].remove(value)
                 if len(self._fields[key]) == 0:
                     del self._fields[key]

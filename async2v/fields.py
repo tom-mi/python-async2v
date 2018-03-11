@@ -159,10 +159,14 @@ class InputQueue(InputField[T], Generic[T]):
         self._queue = deque(maxlen=maxlen)
 
     def set(self, new: Event[T]) -> None:
-        pass
+        self._queue.append(new)
 
     @property
-    def queue(self):
+    def queue(self) -> deque:
+        """
+        Get the input deque, which contains incoming events of type event.Event.
+        New events are appended at the end of the queue by the framework.
+        """
         return self._queue
 
 

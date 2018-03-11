@@ -7,6 +7,7 @@ import logwood
 
 from async2v.components.base import Component, IteratingComponent, EventDrivenComponent, BareComponent
 from async2v.error import ConfigurationError
+from async2v.event import SHUTDOWN_EVENT, Event
 from async2v.fields import Output, DoubleBufferedField
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
@@ -49,6 +50,7 @@ class BaseComponentRunner(Generic[C]):
     def __init__(self, component: C, main_queue: queue.Queue):
         self._component = component  # type: C
         self._stopped = asyncio.Event()
+        self._queue = main_queue
         self.logger = logwood.get_logger(self.__class__.__name__)
         self.duration = Output('async2v.process_duration')
         self.duration.set_queue(main_queue)
@@ -87,7 +89,14 @@ class IteratingComponentRunner(BaseComponentRunner[IteratingComponent]):
         while not self._stopped.is_set():
             for f in input_fields:
                 f.switch()
-            await self._component.process()
+
+            # noinspection PyBroadException
+            try:
+                await self._component.process()
+            except Exception:
+                self.logger.exception('Unexpected error')
+                self._queue.put(Event(SHUTDOWN_EVENT))
+
             duration = time.time() - start
             await asyncio.sleep(desired_delta - duration)
             stop = time.time()
@@ -134,7 +143,14 @@ class EventDrivenComponentRunner(BaseComponentRunner[EventDrivenComponent]):
             for f in input_fields:
                 f.switch()
             self._trigger.clear()
-            await self._component.process()
+
+            # noinspection PyBroadException
+            try:
+                await self._component.process()
+            except Exception:
+                self.logger.exception('Unexpected error')
+                self._queue.put(Event(SHUTDOWN_EVENT))
+
             duration = time.time() - start
             self._publish_duration(duration)
 
