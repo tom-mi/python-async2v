@@ -1,6 +1,6 @@
 import time
 
-from async2v.components.base import Component, EventDrivenComponent, IteratingComponent
+from async2v.components.base import EventDrivenComponent, IteratingComponent
 from async2v.fields import Latest, Output
 
 

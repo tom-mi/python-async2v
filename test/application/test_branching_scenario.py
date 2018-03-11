@@ -18,6 +18,7 @@ def test_branching_scenario(app):
     item_source.push_item('car')
     item_source.push_item('boat')
     item_source.push_item('bike')
+    time.sleep(0.1)
     label_source.push_label('B')
     item_source.push_item('shoes')
     time.sleep(0.1)
