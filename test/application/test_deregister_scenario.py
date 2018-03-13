@@ -38,6 +38,22 @@ def test_deregister_during_runtime(app):
     assert sink2.log == ['setup', '1', 'cleanup']
 
 
+def test_deregister_before_start(app):
+    source = SampleSource()
+    sink1 = SampleSink()
+    sink2 = SampleSink()
+    app.register(source, sink1, sink2)
+    app.deregister(sink2)
+    app.start()
+    time.sleep(0.1)
+    source.push('1')
+    time.sleep(0.2)
+    app.stop()
+
+    assert sink1.log == ['setup', '1', 'cleanup']
+    assert sink2.log == []
+
+
 class SampleSink(EventDrivenComponent):
     def __init__(self, name='sample'):
         self.input = Buffer(name, trigger=True)

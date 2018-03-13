@@ -82,3 +82,6 @@ class ApplicationGraph:
 
     def triggered_component_by_key(self, key: str) -> [Component]:
         return self._triggered_components_by_key.get(key, [])
+
+    def components(self) -> [Component]:
+        return (node.component for node in self._nodes.values())

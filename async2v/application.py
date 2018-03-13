@@ -29,12 +29,20 @@ class Application(Thread):
         self.join()
 
     def register(self, *components: Component) -> None:
-        for component in components:
-            self._queue.put(Event(REGISTER_EVENT, component))
+        if self.is_alive():
+            for component in components:
+                self._queue.put(Event(REGISTER_EVENT, component))
+        else:
+            for component in components:
+                self._do_register(component)
 
     def deregister(self, *components: Component) -> None:
-        for component in components:
-            self._queue.put(Event(DEREGISTER_EVENT, component))
+        if self.is_alive():
+            for component in components:
+                self._queue.put(Event(DEREGISTER_EVENT, component))
+        else:
+            for component in components:
+                self._do_deregister(component)
 
     def run(self):
         asyncio.set_event_loop(self._loop)
@@ -44,6 +52,10 @@ class Application(Thread):
 
         for task in internal_tasks:
             task.add_done_callback(self._error_handling_done_callback(self.logger))
+
+        for component in self._graph.components():
+            if component not in self._component_runners:
+                self._start_component_runner(component)
 
         self._loop.run_until_complete(self._loop.create_task(self._main_loop()))
 
@@ -59,8 +71,10 @@ class Application(Thread):
                     await self._shutdown()
                 elif event.key == REGISTER_EVENT:
                     self._do_register(event.value)
+                    self._start_component_runner(event.value)
                 elif event.key == DEREGISTER_EVENT:
                     self._do_deregister(event.value)
+                    self._stop_component_runner(event.value)
                 for field in self._graph.inputs_by_key(event.key):
                     field.set(event)
                 for component in self._graph.triggered_component_by_key(event.key):
@@ -72,13 +86,12 @@ class Application(Thread):
                 pass
             except Exception:
                 self.logger.exception('Unexpected error')
-                self._shutdown()
+                await self._shutdown()
 
     def _do_register(self, component: Component) -> None:
         self.logger.info('Registering {}', component.id)
         self._graph.register(component)
         self._connect_output_queue(component)
-        self._start_component_runner(component)
 
     def _connect_output_queue(self, component: Component):
         for field in vars(component).values():
@@ -87,6 +100,8 @@ class Application(Thread):
 
     def _start_component_runner(self, component: Component) -> None:
         self.logger.debug('Starting component runner for component {}', component.id)
+        if component in self._component_runners:
+            raise ValueError(f'Component {component} already has a runner')
         runner = create_component_runner(component, self._queue)
         self._component_runners[component] = runner
         task = self._loop.create_task(runner.run())
@@ -95,9 +110,13 @@ class Application(Thread):
 
     def _do_deregister(self, component: Component) -> None:
         self.logger.info('De-registering {}', component.id)
+        self._graph.deregister(component)
+
+    def _stop_component_runner(self, component: Component) -> None:
+        if component not in self._component_runners:
+            raise ValueError(f'Component {component} does not have a runner')
         runner = self._component_runners.pop(component)
         runner.stop()
-        self._graph.deregister(component)
 
     async def _shutdown(self):
         self.logger.info('Initiating shutdown')
