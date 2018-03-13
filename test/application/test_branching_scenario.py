@@ -13,7 +13,6 @@ def test_branching_scenario(app):
     app.register(Labeler())
     app.register(label_source)
     app.start()
-    time.sleep(0.1)  # wait until registration is done
     label_source.push_label('A')
     item_source.push_item('car')
     item_source.push_item('boat')

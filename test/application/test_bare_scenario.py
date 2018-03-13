@@ -9,7 +9,6 @@ def test_bare_scenario(app):
     sink = SampleSink()
     app.register(source, sink)
     app.start()
-    time.sleep(0.1)
     source.push('1')
     source.push('2')
     time.sleep(0.1)
