@@ -22,7 +22,7 @@ class Application(Thread):
     def __init__(self):
         super().__init__()
         self.logger = logwood.get_logger(self.__class__.__name__)
-        self._graph = ApplicationGraph()
+        self.graph = ApplicationGraph()
         self._queue = queue.Queue()  # type: queue.Queue
         self._last_read_from_queue = 0  # type: float
         self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
@@ -60,7 +60,7 @@ class Application(Thread):
             self._create_task_with_error_handler(self._handle_events(), self.logger),
         ]
 
-        for component in self._graph.components():
+        for component in self.graph.components():
             if component not in self._component_runners:
                 self._start_component_runner(component)
 
@@ -84,9 +84,9 @@ class Application(Thread):
                 elif event.key == DEREGISTER_EVENT:
                     self._do_deregister(event.value)
                     self._stop_component_runner(event.value)
-                for field in self._graph.inputs_by_key(event.key):
+                for field in self.graph.inputs_by_key(event.key):
                     field.set(event)
-                for component in self._graph.triggered_component_by_key(event.key):
+                for component in self.graph.triggered_component_by_key(event.key):
                     runner = self._component_runners[component]
                     # noinspection PyUnresolvedReferences
                     runner.trigger()
@@ -99,7 +99,7 @@ class Application(Thread):
 
     def _do_register(self, component: Component) -> None:
         self.logger.info('Registering {}', component.id)
-        self._graph.register(component)
+        self.graph.register(component)
         self._connect_output_queue(component)
 
     def _connect_output_queue(self, component: Component):
@@ -118,7 +118,7 @@ class Application(Thread):
 
     def _do_deregister(self, component: Component) -> None:
         self.logger.info('De-registering {}', component.id)
-        self._graph.deregister(component)
+        self.graph.deregister(component)
 
     def _stop_component_runner(self, component: Component) -> None:
         if component not in self._component_runners:
