@@ -1,15 +1,20 @@
 import asyncio
 import queue
 from threading import Thread
-from typing import Dict
+from typing import Dict, List
 
 import logwood
+import time
 
-from async2v.components.base import Component
+from async2v.components.base import Component, IteratingComponent
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT
 from async2v.fields import Output
 from async2v.graph import ApplicationGraph
 from async2v.runner import create_component_runner, BaseComponentRunner
+
+DRAIN_TIMEOUT_SECONDS = 5
+DRAIN_QUIET_PERIOD_SECONDS = 1
+TASK_SHUTDOWN_TIMEOUT_SECONDS = 5
 
 
 class Application(Thread):
@@ -19,10 +24,14 @@ class Application(Thread):
         self.logger = logwood.get_logger(self.__class__.__name__)
         self._graph = ApplicationGraph()
         self._queue = queue.Queue()  # type: queue.Queue
+        self._last_read_from_queue = 0  # type: float
         self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
         self._component_runner_tasks = {}  # type: Dict[Component, asyncio.Task]
+        self._internal_tasks = []  # type: List[asyncio.Task]
         self._loop = asyncio.new_event_loop()  # type: asyncio.AbstractEventLoop
-        self._stopped = asyncio.Event(loop=self._loop)
+        self._internal_tasks_stopped = asyncio.Event(loop=self._loop)
+        self._main_loop_stopped = asyncio.Event(loop=self._loop)
+        self._main_loop_task = None  # type: asyncio.Task
 
     def stop(self):
         self._queue.put(Event(SHUTDOWN_EVENT))
@@ -46,29 +55,29 @@ class Application(Thread):
 
     def run(self):
         asyncio.set_event_loop(self._loop)
-        internal_tasks = [
-            self._loop.create_task(self._handle_events())
-        ]
 
-        for task in internal_tasks:
-            task.add_done_callback(self._error_handling_done_callback(self.logger))
+        self._internal_tasks = [
+            self._create_task_with_error_handler(self._handle_events(), self.logger),
+        ]
 
         for component in self._graph.components():
             if component not in self._component_runners:
                 self._start_component_runner(component)
 
-        self._loop.run_until_complete(self._loop.create_task(self._main_loop()))
+        self._main_loop_task = self._loop.create_task(self._main_loop())
+        self._loop.run_until_complete(self._main_loop_task)
 
     async def _main_loop(self):
-        await self._stopped.wait()
+        await self._main_loop_stopped.wait()
 
     async def _handle_events(self):
-        while not self._stopped.is_set():
+        while not self._internal_tasks_stopped.is_set():
             # noinspection PyBroadException
             try:
                 event = await self._loop.run_in_executor(None, lambda: self._queue.get(timeout=0.1))  # type: Event
+                self._last_read_from_queue = time.time()
                 if event.key == SHUTDOWN_EVENT:
-                    await self._shutdown()
+                    self._create_task_with_error_handler(self._shutdown(), self.logger)
                 elif event.key == REGISTER_EVENT:
                     self._do_register(event.value)
                     self._start_component_runner(event.value)
@@ -104,8 +113,7 @@ class Application(Thread):
             raise ValueError(f'Component {component} already has a runner')
         runner = create_component_runner(component, self._queue)
         self._component_runners[component] = runner
-        task = self._loop.create_task(runner.run())
-        task.add_done_callback(self._error_handling_done_callback(component.logger))
+        task = self._create_task_with_error_handler(runner.run(), component.logger)
         self._component_runner_tasks[component] = task
 
     def _do_deregister(self, component: Component) -> None:
@@ -120,8 +128,24 @@ class Application(Thread):
 
     async def _shutdown(self):
         self.logger.info('Initiating shutdown')
-        for runner in self._component_runners.values():
-            runner.stop()
+
+        self.logger.debug('Shutting down iterating components')
+        for component, runner in self._component_runners.items():
+            if isinstance(component, IteratingComponent):
+                runner.stop()
+
+        self.logger.debug('Draining event queue')
+        drain_start = time.time()
+        while not (self._queue.qsize() == 0 and time.time() - self._last_read_from_queue > DRAIN_QUIET_PERIOD_SECONDS):
+            if time.time() - drain_start > DRAIN_TIMEOUT_SECONDS:
+                self.logger.warning(f'Could not drain event queue within {DRAIN_TIMEOUT_SECONDS} seconds')
+                break
+            await asyncio.sleep(0.1)
+
+        self.logger.debug('Shutting down remaining components')
+        for component, runner in self._component_runners.items():
+            if not isinstance(component, IteratingComponent):
+                runner.stop()
 
         for component, task in self._component_runner_tasks.items():
             # noinspection PyBroadException
@@ -134,8 +158,25 @@ class Application(Thread):
                 pass
 
         self.logger.debug('Stopping internal tasks')
-        self._stopped.set()
+        self._internal_tasks_stopped.set()
+
+        for task in self._internal_tasks:
+            # noinspection PyBroadException
+            try:
+                await asyncio.wait_for(task, timeout=5)
+            except asyncio.TimeoutError:
+                self.logger.error('Task {} did not stop gracefully', task)
+            except Exception:
+                # These exception should already have been handled in error handler
+                pass
+
         self.logger.info('Shutdown complete')
+        self._main_loop_stopped.set()
+
+    def _create_task_with_error_handler(self, coro, logger: logwood.Logger):
+        task = self._loop.create_task(coro)
+        task.add_done_callback(self._error_handling_done_callback(logger))
+        return task
 
     def _error_handling_done_callback(self, logger: logwood.Logger):
         def callback(future):

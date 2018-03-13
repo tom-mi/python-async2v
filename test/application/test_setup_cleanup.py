@@ -44,7 +44,6 @@ def test_event_driven_component_handles_setup_cleanup(app):
     app.register(sample, source)
     app.start()
     source.trigger()
-    time.sleep(0.1)
     app.stop()
 
     assert sample.log == ['setup', 'process', 'cleanup']
@@ -60,7 +59,6 @@ def test_event_driven_component_calls_cleanup_in_case_of_error(app):
     app.start()
     source.trigger()
     source.trigger()
-    time.sleep(0.1)
     app.stop()
 
     assert sample.log == ['setup', 'cleanup']

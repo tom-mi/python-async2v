@@ -1,5 +1,3 @@
-import time
-
 from async2v.components.base import BareComponent
 from async2v.fields import Output, InputQueue
 
@@ -11,7 +9,6 @@ def test_bare_scenario(app):
     app.start()
     source.push('1')
     source.push('2')
-    time.sleep(0.1)
     app.stop()
 
     assert sink.log == ['setup', '1', '2', 'cleanup']

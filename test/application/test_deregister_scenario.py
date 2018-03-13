@@ -1,5 +1,3 @@
-import time
-
 from async2v.components.base import BareComponent, EventDrivenComponent
 from async2v.fields import Output, Buffer
 
@@ -10,11 +8,9 @@ def test_register_during_runtime(app):
     sink2 = SampleSink()
     app.register(source, sink1)
     app.start()
-    time.sleep(0.1)
     source.push('1')
     app.register(sink2)
     source.push('2')
-    time.sleep(0.2)
     app.stop()
 
     assert sink1.log == ['setup', '1', '2', 'cleanup']
@@ -30,7 +26,6 @@ def test_deregister_during_runtime(app):
     source.push('1')
     app.deregister(sink2)
     source.push('2')
-    time.sleep(0.2)
     app.stop()
 
     assert sink1.log == ['setup', '1', '2', 'cleanup']
@@ -45,7 +40,6 @@ def test_deregister_before_start(app):
     app.deregister(sink2)
     app.start()
     source.push('1')
-    time.sleep(0.2)
     app.stop()
 
     assert sink1.log == ['setup', '1', 'cleanup']

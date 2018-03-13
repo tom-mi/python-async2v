@@ -20,7 +20,6 @@ def test_branching_scenario(app):
     time.sleep(0.1)
     label_source.push_label('B')
     item_source.push_item('shoes')
-    time.sleep(0.1)
     app.stop()
 
     assert sink.data == ['carA', 'boatA', 'bikeA', 'shoesB']
