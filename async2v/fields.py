@@ -1,11 +1,12 @@
 import asyncio
 import queue
 from collections import deque
-from typing import TypeVar, Generic, Optional
+from typing import TypeVar, Generic, Optional, Dict, Callable
 
 from async2v.event import Event
 
 T = TypeVar('T')
+K = TypeVar('K')
 
 
 class InputField(Generic[T]):
@@ -89,6 +90,34 @@ class Latest(DoubleBufferedField[T], Generic[T]):
     @property
     def timestamp(self) -> float:
         return self._event.timestamp
+
+
+class LatestBy(Generic[K, T], DoubleBufferedField[T]):
+
+    def __init__(self, key: str, classifier: Callable[[T], K], trigger: bool = False):
+        super().__init__(key, trigger=trigger)
+        self._classifier = classifier
+        self._input_events = {}  # type: Dict[K, Event[T]]
+        self._events = {}  # type: Dict[K, Event[T]]
+
+    def _set_event(self, new: Event[T]) -> None:
+        event_class = self._classifier(new)
+        self._input_events[event_class] = new
+
+    def _switch_events(self) -> None:
+        self._events = self._input_events.copy()
+
+    @property
+    def events(self) -> Dict[K, Event[T]]:
+        return self._events
+
+    @property
+    def values(self) -> Dict[K, T]:
+        return dict((k, v.value) for k, v in self._events.items())
+
+    @property
+    def timestamps(self) -> Dict[K, float]:
+        return dict((k, v.timestamp) for k, v in self._events.items())
 
 
 class Buffer(DoubleBufferedField[T], Generic[T]):
