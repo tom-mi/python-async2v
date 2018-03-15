@@ -1,31 +1,62 @@
-import typing
-from typing import Dict, List
+from typing import Dict, List, Union, NamedTuple
 
 import graphviz
 
-from async2v.components.base import Component, IteratingComponent
+from async2v.components.base import Component, IteratingComponent, SubComponent, ContainerMixin, EventDrivenComponent, \
+    BareComponent
+from async2v.error import ConfigurationError
 from async2v.fields import InputField, Output, DoubleBufferedField
 
 
-class ComponentNode(typing.NamedTuple):
-    component: Component
+class ComponentNode(NamedTuple):
+    component: Union[Component, SubComponent]
     inputs: Dict[str, InputField]
     outputs: Dict[str, Output]
     triggers: List[InputField]
+    sub_components: List['ComponentNode']
 
     @property
     def id(self) -> str:
         return self.component.id
 
     @staticmethod
-    def create(component: Component) -> 'ComponentNode':
+    def create(component: Union[Component, SubComponent]) -> 'ComponentNode':
         inputs = dict((k, f) for k, f in vars(component).items() if isinstance(f, InputField))
         outputs = dict((k, f) for k, f in vars(component).items() if isinstance(f, Output))
         triggers = [f for f in vars(component).values() if isinstance(f, DoubleBufferedField) and f.trigger]
-        return ComponentNode(component, inputs, outputs, triggers)
+        sub_components = []
+        if isinstance(component, ContainerMixin):
+            for sub_component in component.sub_components:
+                sub_components.append(ComponentNode.create(sub_component))
+
+        return ComponentNode(component, inputs, outputs, triggers, sub_components)
+
+    @property
+    def all_inputs(self) -> Dict[str, InputField]:
+        result = {}
+        result.update(self.inputs)
+        for sub_component in self.sub_components:
+            result.update(sub_component.all_inputs)
+        return result
+
+    @property
+    def all_outputs(self) -> Dict[str, Output]:
+        result = {}
+        result.update(self.outputs)
+        for sub_component in self.sub_components:
+            result.update(sub_component.all_outputs)
+        return result
+
+    @property
+    def all_triggers(self) -> List[InputField]:
+        result = []
+        result += self.triggers
+        for sub_component in self.sub_components:
+            result += sub_component.all_triggers
+        return result
 
 
-class Link(typing.NamedTuple):
+class Link(NamedTuple):
     key: str
     source: str
     source_field: Output
@@ -43,6 +74,7 @@ class ApplicationGraph:
 
     def register(self, component):
         node = ComponentNode.create(component)
+        self._validate(node)
         if node.id in self._nodes:
             raise ValueError(f'Component {node.id} is already registered')
         self._nodes[node.id] = node
@@ -54,25 +86,42 @@ class ApplicationGraph:
         del self._nodes[component.id]
         self._generate_mappings()
 
+    @staticmethod
+    def _validate(node: ComponentNode):
+        if isinstance(node.component, IteratingComponent):
+            if len(node.all_triggers) > 0:
+                raise ConfigurationError(f'IteratingComponent {node.id} cannot have trigger fields')
+        elif isinstance(node.component, EventDrivenComponent):
+            if len(node.all_triggers) == 0:
+                raise ConfigurationError(f'EventDrivenComponent {node.id} must have at least one trigger field')
+        elif isinstance(node.component, BareComponent):
+            if len([f for f in node.all_inputs if isinstance(f, DoubleBufferedField)]) > 0:
+                raise ConfigurationError(f'BareComponent {node.id} cannot have double-buffered fields')
+        else:
+            raise RuntimeError(f'Unknown component type {node.component.__class__.__name__} of {node.id}')
+
     def _generate_mappings(self):
         self._inputs_by_key = {}
         self._triggered_components_by_key = {}
         for node in self._nodes.values():
-            for field in node.inputs.values():
-                if field.key not in self._inputs_by_key:
-                    self._inputs_by_key[field.key] = []
-                self._inputs_by_key[field.key].append(field)
-            for field in node.triggers:
-                if field.key not in self._triggered_components_by_key:
-                    self._triggered_components_by_key[field.key] = []
-                self._triggered_components_by_key[field.key].append(node.component)
+            self._add_fields(node)
+
+    def _add_fields(self, node: ComponentNode):
+        for field in node.all_inputs.values():
+            if field.key not in self._inputs_by_key:
+                self._inputs_by_key[field.key] = []
+            self._inputs_by_key[field.key].append(field)
+        for field in node.all_triggers:
+            if field.key not in self._triggered_components_by_key:
+                self._triggered_components_by_key[field.key] = []
+            self._triggered_components_by_key[field.key].append(node.component)
 
     def generate_links(self) -> List[Link]:
         links = []
         for source in self._nodes.values():
             for target in self._nodes.values():
-                for source_field in source.outputs.values():
-                    for target_field in target.inputs.values():
+                for source_field in source.all_outputs.values():
+                    for target_field in target.all_inputs.values():
                         if source_field.key == target_field.key:
                             link = Link(source_field.key, source.id, source_field, target.id, target_field)
                             links.append(link)
@@ -90,6 +139,8 @@ class ApplicationGraph:
     def nodes(self) -> [ComponentNode]:
         return self._nodes.values()
 
+    def node_by_component(self, component: Component) -> ComponentNode:
+        return self._nodes[component.id]
 
 def draw_application_graph(graph: ApplicationGraph):
     dot = graphviz.Digraph(node_attr={'shape': 'plaintext'}, graph_attr={'rankdir': 'LR'})

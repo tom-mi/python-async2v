@@ -1,14 +1,13 @@
 import asyncio
 import queue
+import time
 from threading import Thread
 from typing import Dict, List
 
 import logwood
-import time
 
 from async2v.components.base import Component, IteratingComponent
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT
-from async2v.fields import Output
 from async2v.graph import ApplicationGraph
 from async2v.runner import create_component_runner, BaseComponentRunner
 
@@ -103,15 +102,15 @@ class Application(Thread):
         self._connect_output_queue(component)
 
     def _connect_output_queue(self, component: Component):
-        for field in vars(component).values():
-            if isinstance(field, Output):
-                field.set_queue(self._queue)
+        for field in self.graph.node_by_component(component).all_outputs.values():
+            field.set_queue(self._queue)
 
     def _start_component_runner(self, component: Component) -> None:
         self.logger.debug('Starting component runner for component {}', component.id)
         if component in self._component_runners:
             raise ValueError(f'Component {component} already has a runner')
-        runner = create_component_runner(component, self._queue)
+        node = self.graph.node_by_component(component)
+        runner = create_component_runner(node, self._queue)
         self._component_runners[component] = runner
         task = self._create_task_with_error_handler(runner.run(), component.logger)
         self._component_runner_tasks[component] = task

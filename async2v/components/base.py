@@ -1,10 +1,12 @@
+from typing import List
+
 import logwood
 
 from async2v.event import SHUTDOWN_EVENT
 from async2v.fields import Output
 
 
-class Component:
+class _BaseComponent:
     __count = {}
 
     def __new__(cls, *args, **kwargs):
@@ -23,6 +25,9 @@ class Component:
     @property
     def id(self) -> str:
         return self.__class__.__name__ + str(self._numeric_id)
+
+
+class Component(_BaseComponent):
 
     async def setup(self):
         pass
@@ -49,3 +54,17 @@ class EventDrivenComponent(Component):
 
 class BareComponent(Component):
     pass
+
+
+class SubComponent(_BaseComponent):
+    pass
+
+
+class ContainerMixin:
+
+    def __init__(self, sub_components: List[SubComponent]):
+        self._sub_components = sub_components
+
+    @property
+    def sub_components(self) -> List[SubComponent]:
+        return self._sub_components
