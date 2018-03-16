@@ -185,8 +185,9 @@ def _create_node_html(node: ComponentNode, sub: bool = False) -> str:
         sub_component_html += '<tr><td colspan="3">' + _create_node_html(sub_component, sub=True) + '</td></tr>'
 
     font_size = 14 if sub else 18
+    color, bg_color = node.component.graph_colors
 
-    return f'''<table cellborder="0" style="rounded" color="#808080">
+    return f'''<table cellborder="0" style="rounded" color="{color}" bgcolor="{bg_color}">
             <tr>
                 <td colspan="3"><font point-size="{font_size}">{node.id}</font>{clock}</td>
             </tr>

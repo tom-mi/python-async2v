@@ -1,6 +1,6 @@
 import asyncio
-import typing
 from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple, NamedTuple
 
 from async2v.components.base import IteratingComponent, EventDrivenComponent
 from async2v.fields import Output, Latest
@@ -18,7 +18,7 @@ except ImportError as e:
     raise e
 
 
-class Frame(typing.NamedTuple):
+class Frame(NamedTuple):
     image: np.ndarray
     source: str
 
@@ -51,6 +51,10 @@ class VideoSource(IteratingComponent):
     @property
     def target_fps(self) -> int:
         return self._target_fps
+
+    @property
+    def graph_colors(self) -> Tuple[str, str]:
+        return '#8080F0', '#FBFBFF'
 
     async def setup(self):
         await asyncio.get_event_loop().run_in_executor(self._executor, self._create_capture)

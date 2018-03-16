@@ -1,5 +1,5 @@
 import argparse
-from typing import List
+from typing import List, Tuple
 
 import pygame.display
 import sys
@@ -48,6 +48,10 @@ class MainWindow(IteratingComponent, ContainerMixin):
     @property
     def target_fps(self) -> int:
         return self._fps
+
+    @property
+    def graph_colors(self) -> Tuple[str, str]:
+        return '#50E020', '#EEFEEB'
 
     async def setup(self):
         pygame.display.init()

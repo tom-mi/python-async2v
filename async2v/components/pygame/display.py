@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.opencvutil import opencv_to_pygame
@@ -17,6 +19,10 @@ class OpenCvDisplay(Display):
 
     def __init__(self, source):
         self.input = Latest(source)  # type: Latest[Frame]
+
+    @property
+    def graph_colors(self) -> Tuple[str, str]:
+        return '#50A0A0', '#EEFEFE'
 
     def draw(self, surface: pygame.Surface):
         if not self.input.value:

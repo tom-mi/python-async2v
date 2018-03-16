@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import logwood
 
@@ -25,6 +25,10 @@ class _BaseComponent:
     @property
     def id(self) -> str:
         return self.__class__.__name__ + str(self._numeric_id)
+
+    @property
+    def graph_colors(self) -> Tuple[str, str]:
+        return '#808080', '#FEFEFE'
 
 
 class Component(_BaseComponent):
