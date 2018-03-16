@@ -22,6 +22,7 @@ class ApplicationLauncher:
         run_parser = subparsers.add_parser('run')
 
         graph_parser = subparsers.add_parser('graph')
+        graph_parser.add_argument('--source', help='Print dot code instead of creating graph', action='store_true')
 
         self._parser = parser
 
@@ -34,12 +35,13 @@ class ApplicationLauncher:
             format='%(timestamp).6f %(level)-5s %(name)s: %(message)s',
             level=self._get_loglevel(args),
         )
-        if not args.command:
-            self._parser.print_usage()
-            sys.exit(1)
 
         app = Application()
         self.register_application_components(args, app)
+
+        if not args.command:
+            self._parser.print_usage()
+            sys.exit(1)
 
         if args.command == 'run':
             app.start()
@@ -50,7 +52,7 @@ class ApplicationLauncher:
                     break
             app.stop()
         elif args.command == 'graph':
-            draw_application_graph(app.graph)
+            draw_application_graph(app.graph, print_source=args.source)
 
     @staticmethod
     def _get_loglevel(args):

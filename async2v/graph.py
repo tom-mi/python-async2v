@@ -36,7 +36,8 @@ class ComponentNode(NamedTuple):
         result = {}
         result.update(self.inputs)
         for sub_component in self.sub_components:
-            result.update(sub_component.all_inputs)
+            for k, field in sub_component.all_inputs.items():
+                result[self.id + '.' + k] = field
         return result
 
     @property
@@ -44,7 +45,8 @@ class ComponentNode(NamedTuple):
         result = {}
         result.update(self.outputs)
         for sub_component in self.sub_components:
-            result.update(sub_component.all_outputs)
+            for k, field in sub_component.all_outputs.items():
+                result[self.id + '.' + k] = field
         return result
 
     @property
@@ -58,10 +60,10 @@ class ComponentNode(NamedTuple):
 
 class Link(NamedTuple):
     key: str
-    source: str
-    source_field: Output
-    target: str
-    target_field: InputField
+    source_component: str
+    source_field_name: str
+    target_component: str
+    target_field_name: str
 
 
 class ApplicationGraph:
@@ -120,10 +122,12 @@ class ApplicationGraph:
         links = []
         for source in self._nodes.values():
             for target in self._nodes.values():
-                for source_field in source.all_outputs.values():
-                    for target_field in target.all_inputs.values():
+                for full_source_field_name, source_field in source.all_outputs.items():
+                    for full_target_field_name, target_field in target.all_inputs.items():
                         if source_field.key == target_field.key:
-                            link = Link(source_field.key, source.id, source_field, target.id, target_field)
+                            source_field_name = full_source_field_name.split('.')[-1]
+                            target_field_name = full_target_field_name.split('.')[-1]
+                            link = Link(source_field.key, source.id, source_field_name, target.id, target_field_name)
                             links.append(link)
         return links
 
@@ -142,28 +146,32 @@ class ApplicationGraph:
     def node_by_component(self, component: Component) -> ComponentNode:
         return self._nodes[component.id]
 
-def draw_application_graph(graph: ApplicationGraph):
+
+def draw_application_graph(graph: ApplicationGraph, print_source: bool =False):
     dot = graphviz.Digraph(node_attr={'shape': 'plaintext'}, graph_attr={'rankdir': 'LR'})
     for node in graph.nodes():
-        dot.node(node.id, _create_node_html(node))
+        dot.node(node.id, '<' + _create_node_html(node) + '>')
     for link in graph.generate_links():
         color = '#808080' if link.key.startswith('async2v') else 'black'
-        dot.edge(f'{link.source}:{link.source_field.key}:e',
-                 f'{link.target}:{link.target_field.key}:w',
+        dot.edge(f'{link.source_component}:{link.source_field_name}:e',
+                 f'{link.target_component}:{link.target_field_name}:w',
                  label=link.key, color=color, fontcolor=color)
-    dot.render(filename='graph.svg')
+    if print_source:
+        print(dot.source)
+    else:
+        dot.render(filename='graph.svg')
 
 
-def _create_node_html(node: ComponentNode) -> str:
+def _create_node_html(node: ComponentNode, sub: bool = False) -> str:
     left_rows = []
-    for key, field in node.inputs.items():
-        left_rows.append(_create_port_html(key, field, 'left'))
+    for field_name, field in sorted(node.inputs.items(), key=lambda it: it[0]):
+        left_rows.append(_create_port_html(field_name, field, 'left'))
     left_column = _create_port_column(left_rows)
     right_rows = []
-    for key, field in node.outputs.items():
-        if key == '_Component__shutdown':
+    for field_name, field in sorted(node.outputs.items(), key=lambda it: it[0]):
+        if field_name == '_BaseComponent__shutdown':
             continue
-        right_rows.append(_create_port_html(key, field, 'right'))
+        right_rows.append(_create_port_html(field_name, field, 'right'))
     right_column = _create_port_column(right_rows)
 
     if isinstance(node.component, IteratingComponent):
@@ -172,22 +180,29 @@ def _create_node_html(node: ComponentNode) -> str:
     else:
         clock = ''
 
-    return f'''<<table cellborder="0" style="rounded" color="#808080">
+    sub_component_html = ''
+    for sub_component in node.sub_components:
+        sub_component_html += '<tr><td colspan="3">' + _create_node_html(sub_component, sub=True) + '</td></tr>'
+
+    font_size = 14 if sub else 18
+
+    return f'''<table cellborder="0" style="rounded" color="#808080">
             <tr>
-                <td colspan="3"><font point-size="18">{node.id}</font>{clock}</td>
+                <td colspan="3"><font point-size="{font_size}">{node.id}</font>{clock}</td>
             </tr>
             <tr>
                 <td width="120">{left_column}</td>
                 <td width="40"></td>
                 <td width="120">{right_column}</td>
             </tr> 
-        </table>>'''
+            {sub_component_html}
+        </table>'''
 
 
-def _create_port_html(key, field, align):
+def _create_port_html(field_name, field, align):
     color = _color_by_field(field)
     font = _font_by_field(field)
-    return f'<tr><td width="120" height="24" fixedsize="TRUE" align="{align}" bgcolor="{color}" port="{field.key}"><font face="{font}">{key}</font></td></tr>'
+    return f'<tr><td width="120" height="24" fixedsize="TRUE" align="{align}" bgcolor="{color}" port="{field_name}"><font face="{font}">{field_name}</font></td></tr>'
 
 
 def _color_by_field(field):

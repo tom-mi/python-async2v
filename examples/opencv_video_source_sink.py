@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import time
-
-import logwood
 
 from async2v.application import Application
 from async2v.cli import ApplicationLauncher

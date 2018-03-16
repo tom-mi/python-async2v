@@ -102,7 +102,7 @@ class Application(Thread):
         self._connect_output_queue(component)
 
     def _connect_output_queue(self, component: Component):
-        for field in self.graph.node_by_component(component).all_outputs.values():
+        for key, field in self.graph.node_by_component(component).all_outputs.items():
             field.set_queue(self._queue)
 
     def _start_component_runner(self, component: Component) -> None:
