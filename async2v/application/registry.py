@@ -56,14 +56,6 @@ class ComponentNode(NamedTuple):
         return result
 
 
-class Link(NamedTuple):
-    key: str
-    source_component: str
-    source_field_name: str
-    target_component: str
-    target_field_name: str
-
-
 class Registry:
 
     def __init__(self):
@@ -115,19 +107,6 @@ class Registry:
             if field.key not in self._triggered_components_by_key:
                 self._triggered_components_by_key[field.key] = []
             self._triggered_components_by_key[field.key].append(node.component)
-
-    def generate_links(self) -> List[Link]:
-        links = []
-        for source in self._nodes.values():
-            for target in self._nodes.values():
-                for full_source_field_name, source_field in source.all_outputs.items():
-                    for full_target_field_name, target_field in target.all_inputs.items():
-                        if source_field.key == target_field.key:
-                            source_field_name = full_source_field_name.split('.')[-1]
-                            target_field_name = full_target_field_name.split('.')[-1]
-                            link = Link(source_field.key, source.id, source_field_name, target.id, target_field_name)
-                            links.append(link)
-        return links
 
     def inputs_by_key(self, key: str) -> [InputField]:
         return self._inputs_by_key.get(key, [])
