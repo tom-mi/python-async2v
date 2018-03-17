@@ -22,6 +22,7 @@ class Display(SubComponent):
 
 
 class OpenCvDisplay(Display):
+    BG_COLOR = (0, 0, 0)
 
     def __init__(self, source):
         self.input = Latest(source)  # type: Latest[Frame]
@@ -31,6 +32,7 @@ class OpenCvDisplay(Display):
         return '#50A0A0', '#EEFEFE'
 
     def draw(self, surface: pygame.Surface):
+        surface.fill(self.BG_COLOR)
         if not self.input.value:
             return
         frame_surface = opencv_to_pygame(self.input.value)

@@ -106,8 +106,8 @@ class Application(Thread):
         self._connect_output_queue(component)
 
     def _connect_output_queue(self, component: Component):
-        for key, field in self._registry.node_by_component(component).all_outputs.items():
-            field.set_queue(self._queue)
+        for field_node in self._registry.node_by_component(component).all_outputs:
+            field_node.field.set_queue(self._queue)
 
     def _start_component_runner(self, component: Component) -> None:
         self.logger.debug('Starting component runner for component {}', component.id)

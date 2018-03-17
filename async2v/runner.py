@@ -87,7 +87,7 @@ class IteratingComponentRunner(BaseComponentRunner):
 
     async def run(self):
         desired_delta = 1 / self._component.target_fps
-        input_fields = [f for f in self._node.all_inputs.values() if isinstance(f, DoubleBufferedField)]
+        input_fields = [f.field for f in self._node.all_inputs if isinstance(f.field, DoubleBufferedField)]
 
         self.logger.debug('Setup component runner {}', self._component.id)
         await self._component.setup()
@@ -129,7 +129,7 @@ class EventDrivenComponentRunner(BaseComponentRunner[EventDrivenComponent]):
         self._trigger.set()
 
     async def run(self):
-        input_fields = [f for f in self._node.all_inputs.values() if isinstance(f, DoubleBufferedField)]
+        input_fields = [f.field for f in self._node.all_inputs if isinstance(f.field, DoubleBufferedField)]
 
         self.logger.debug('Setup component runner {}', self._component.id)
         await self._component.setup()

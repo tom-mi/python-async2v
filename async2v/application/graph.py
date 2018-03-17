@@ -3,7 +3,7 @@ from typing import List, NamedTuple
 import graphviz
 
 from async2v.application import Registry
-from async2v.application.registry import ComponentNode
+from async2v.application.registry import ComponentNode, FieldNode
 from async2v.components.base import IteratingComponent
 from async2v.fields import DoubleBufferedField
 
@@ -15,9 +15,9 @@ def get_formats() -> List[str]:
 class Link(NamedTuple):
     key: str
     source_component: str
-    source_field_name: str
+    source_field_id: str
     target_component: str
-    target_field_name: str
+    target_field_id: str
 
 
 class ApplicationGraph:
@@ -44,34 +44,33 @@ class ApplicationGraph:
             self._dot.node(node.id, '<' + self._create_node_html(node) + '>')
         for link in self._generate_links():
             color = '#808080' if link.key.startswith('async2v') else 'black'
-            self._dot.edge(f'{link.source_component}:{link.source_field_name}:e',
-                           f'{link.target_component}:{link.target_field_name}:w',
+            self._dot.edge(f'{link.source_component}:{link.source_field_id}:e',
+                           f'{link.target_component}:{link.target_field_id}:w',
                            label=link.key, color=color, fontcolor=color)
 
     def _generate_links(self) -> List[Link]:
         links = []
         for source in self._registry.nodes():
             for target in self._registry.nodes():
-                for full_source_field_name, source_field in source.all_outputs.items():
-                    for full_target_field_name, target_field in target.all_inputs.items():
-                        if source_field.key == target_field.key:
-                            source_field_name = full_source_field_name.split('.')[-1]
-                            target_field_name = full_target_field_name.split('.')[-1]
-                            link = Link(source_field.key, source.id, source_field_name, target.id, target_field_name)
+                for source_field_node in source.all_outputs:
+                    for target_field_node in target.all_inputs:
+                        if source_field_node.key == target_field_node.key:
+                            link = Link(source_field_node.key, source.id, source_field_node.field_id,
+                                        target.id, target_field_node.field_id)
                             links.append(link)
         return links
 
     @classmethod
     def _create_node_html(cls, node: ComponentNode, sub: bool = False) -> str:
         left_rows = []
-        for field_name, field in sorted(node.inputs.items(), key=lambda it: it[0]):
-            left_rows.append(cls._create_port_html(field_name, field, 'left'))
+        for field_node in sorted(node.inputs, key=lambda it: it.field_name):
+            left_rows.append(cls._create_port_html(field_node, 'left'))
         left_column = cls._create_port_column(left_rows)
         right_rows = []
-        for field_name, field in sorted(node.outputs.items(), key=lambda it: it[0]):
-            if field_name == '_BaseComponent__shutdown':
+        for field_node in sorted(node.outputs, key=lambda it: it.field_name):
+            if field_node.field_name == '_BaseComponent__shutdown':
                 continue
-            right_rows.append(cls._create_port_html(field_name, field, 'right'))
+            right_rows.append(cls._create_port_html(field_node, 'right'))
         right_column = cls._create_port_column(right_rows)
 
         if isinstance(node.component, IteratingComponent):
@@ -100,11 +99,11 @@ class ApplicationGraph:
             </table>'''
 
     @classmethod
-    def _create_port_html(cls, field_name, field, align):
-        color = cls._color_by_field(field)
-        font = cls._font_by_field(field)
+    def _create_port_html(cls, field_node: FieldNode, align):
+        color = cls._color_by_field(field_node.field)
+        font = cls._font_by_field(field_node.field)
         return f'<tr><td width="120" height="24" fixedsize="TRUE" align="{align}" bgcolor="{color}" ' \
-               f'port="{field_name}"><font face="{font}">{field_name}</font></td></tr>'
+               f'port="{field_node.field_id}"><font face="{font}">{field_node.field_name}</font></td></tr>'
 
     @staticmethod
     def _color_by_field(field):

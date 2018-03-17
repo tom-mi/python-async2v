@@ -1,16 +1,31 @@
-from typing import Dict, List, Union, NamedTuple
+from typing import Dict, List, Union, NamedTuple, Generic, TypeVar
 
 from async2v.components.base import Component, IteratingComponent, SubComponent, ContainerMixin, EventDrivenComponent, \
     BareComponent
 from async2v.error import ConfigurationError
 from async2v.fields import InputField, Output, DoubleBufferedField
 
+F = TypeVar('F', InputField, Output)
+
+
+class FieldNode(Generic[F]):
+    __slots__ = ['field', 'field_id', 'field_name']
+
+    def __init__(self, field: F, field_id: str, field_name: str):
+        self.field = field  # type : F
+        self.field_id = field_id  # type : str
+        self.field_name = field_name  # type : str
+
+    @property
+    def key(self) -> str:
+        return self.field.key
+
 
 class ComponentNode(NamedTuple):
     component: Union[Component, SubComponent]
-    inputs: Dict[str, InputField]
-    outputs: Dict[str, Output]
-    triggers: List[InputField]
+    inputs: List[FieldNode[InputField]]
+    outputs: List[FieldNode[Output]]
+    triggers: List[FieldNode[InputField]]
     sub_components: List['ComponentNode']
 
     @property
@@ -18,42 +33,30 @@ class ComponentNode(NamedTuple):
         return self.component.id
 
     @staticmethod
-    def create(component: Union[Component, SubComponent]) -> 'ComponentNode':
-        inputs = dict((k, f) for k, f in vars(component).items() if isinstance(f, InputField))
-        outputs = dict((k, f) for k, f in vars(component).items() if isinstance(f, Output))
-        triggers = [f for f in vars(component).values() if isinstance(f, DoubleBufferedField) and f.trigger]
+    def create(component: Union[Component, SubComponent], id_prefix: str = '') -> 'ComponentNode':
+        id_prefix += component.id + '.'
+        inputs = [FieldNode(f, id_prefix + k, k) for k, f in vars(component).items() if isinstance(f, InputField)]
+        outputs = [FieldNode(f, id_prefix + k, k) for k, f in vars(component).items() if isinstance(f, Output)]
+        triggers = [FieldNode(f, id_prefix + k, k) for k, f in vars(component).items() if
+                    isinstance(f, DoubleBufferedField) and f.trigger]
         sub_components = []
         if isinstance(component, ContainerMixin):
             for sub_component in component.sub_components:
-                sub_components.append(ComponentNode.create(sub_component))
+                sub_components.append(ComponentNode.create(sub_component, id_prefix=id_prefix))
 
         return ComponentNode(component, inputs, outputs, triggers, sub_components)
 
     @property
-    def all_inputs(self) -> Dict[str, InputField]:
-        result = {}
-        result.update(self.inputs)
-        for sub_component in self.sub_components:
-            for k, field in sub_component.all_inputs.items():
-                result[self.id + '.' + k] = field
-        return result
+    def all_inputs(self) -> List[FieldNode[InputField]]:
+        return self.inputs + [field for sub_component in self.sub_components for field in sub_component.all_inputs]
 
     @property
-    def all_outputs(self) -> Dict[str, Output]:
-        result = {}
-        result.update(self.outputs)
-        for sub_component in self.sub_components:
-            for k, field in sub_component.all_outputs.items():
-                result[self.id + '.' + k] = field
-        return result
+    def all_outputs(self) -> List[FieldNode[Output]]:
+        return self.outputs + [field for sub_component in self.sub_components for field in sub_component.all_outputs]
 
     @property
-    def all_triggers(self) -> List[InputField]:
-        result = []
-        result += self.triggers
-        for sub_component in self.sub_components:
-            result += sub_component.all_triggers
-        return result
+    def all_triggers(self) -> List[FieldNode[InputField]]:
+        return self.triggers + [field for sub_component in self.sub_components for field in sub_component.all_triggers]
 
 
 class Registry:
@@ -99,14 +102,14 @@ class Registry:
             self._add_fields(node)
 
     def _add_fields(self, node: ComponentNode):
-        for field in node.all_inputs.values():
-            if field.key not in self._inputs_by_key:
-                self._inputs_by_key[field.key] = []
-            self._inputs_by_key[field.key].append(field)
-        for field in node.all_triggers:
-            if field.key not in self._triggered_components_by_key:
-                self._triggered_components_by_key[field.key] = []
-            self._triggered_components_by_key[field.key].append(node.component)
+        for field_node in node.all_inputs:
+            if field_node.key not in self._inputs_by_key:
+                self._inputs_by_key[field_node.key] = []
+            self._inputs_by_key[field_node.key].append(field_node.field)
+        for field_node in node.all_triggers:
+            if field_node.key not in self._triggered_components_by_key:
+                self._triggered_components_by_key[field_node.key] = []
+            self._triggered_components_by_key[field_node.key].append(node.component)
 
     def inputs_by_key(self, key: str) -> [InputField]:
         return self._inputs_by_key.get(key, [])

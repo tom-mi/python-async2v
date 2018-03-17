@@ -22,12 +22,14 @@ class Launcher(ApplicationLauncher):
 
     def register_application_components(self, args, app: Application):
         source = VideoSource()
-        #display = OpenCvDisplay('terminator')
-        display = OpenCvDebugDisplay()
+        displays = [
+            OpenCvDisplay('terminator'),
+            OpenCvDebugDisplay(),
+        ]
         face_detector = FaceDetector()
         terminator_filter = TerminatorFilter()
         main_window_config = MainWindow.config_from_args(args)
-        main_window = MainWindow(main_window_config, displays=[display])
+        main_window = MainWindow(displays, config=main_window_config)
         app.register(source, face_detector, terminator_filter, main_window)
 
 
@@ -53,7 +55,7 @@ class TerminatorFilter(EventDrivenComponent):
         if self.faces.value is not None:
             for (x, y, w, h) in self.faces.value:
                 cv2.rectangle(red_image, (x, y), (x + w, y + h), (255, 255, 255), 2)
-        frame = Frame(red_image, 'terminator')
+        frame = Frame(red_image, 'Terminator')
         self.output.push(frame)
         self.debug_output.push(frame)
 

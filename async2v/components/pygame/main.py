@@ -8,6 +8,7 @@ from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
     parse_resolution, DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
+from async2v.error import ConfigurationError
 
 
 class MainWindow(IteratingComponent, ContainerMixin):
@@ -32,13 +33,19 @@ class MainWindow(IteratingComponent, ContainerMixin):
                 resolution = None
         return DisplayConfiguration(resolution, args.fullscreen, args.resizable)
 
-    def __init__(self, config: DisplayConfiguration = None, fps: int = 60, displays: [Display] = None):
-        super().__init__(displays or [])
+    def __init__(self, displays: List[Display], config: DisplayConfiguration = None, fps: int = 60, ):
+        super().__init__(list(displays))
+        if len(displays) == 0:
+            raise ConfigurationError('Need at least 1 display')
+        elif len(displays) > 9:
+            raise ConfigurationError('Currently, no more than 9 displays are supported')
+
         self._fps = fps  # type: int
         self._config = config
         self._currently_fullscreen = config.fullscreen  # type: bool
 
-        self._displays = list(displays or [])  # type: List[Display]
+        self._displays = list(displays)  # type: List[Display]
+        self._current_display = 0  # type: int
         self._surface = None  # type: pygame.Surface
 
     @property
@@ -59,6 +66,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.shutdown()
+                if pygame.K_F2 <= event.key <= pygame.K_F10:
+                    new_display = event.key - pygame.K_F2
+                    self.change_display(new_display)
                 if event.key == pygame.K_F11:
                     self.toggle_fullscreen()
             elif event.type in (pygame.VIDEORESIZE, pygame.VIDEOEXPOSE):
@@ -70,9 +80,7 @@ class MainWindow(IteratingComponent, ContainerMixin):
 
         # TODO add event handler
 
-        for display in self._displays:
-            # TODO add display switching
-            display.draw(self._surface)
+        self._displays[self._current_display].draw(self._surface)
 
         pygame.display.flip()
 
@@ -84,6 +92,12 @@ class MainWindow(IteratingComponent, ContainerMixin):
         else:
             self._surface = configure_display(self._config)
         self._currently_fullscreen = not self._currently_fullscreen
+
+    def change_display(self, new_display: int):
+        if 0 <= new_display < len(self._displays):
+            self._current_display = new_display
+        else:
+            self.logger.error(f'Cannot switch to invalid display {new_display}')
 
     async def cleanup(self):
         pygame.display.quit()
