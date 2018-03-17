@@ -52,6 +52,7 @@ class OpenCvDebugDisplay(Display):
         self.fps = LatestBy(FPS_EVENT, lambda fps: fps.component_id)  # type: LatestBy[str, Fps]
         self.duration = LatestBy(DURATION_EVENT, lambda d: d.component_id)  # type: LatestBy[str, Duration]
         self._number_of_elements = 0  # type: int
+        self._surface_size = None
         self._last_layout_evaluation = 0  # type: float
         self._layout = None  # type: Tuple[int, int]
 
@@ -71,7 +72,8 @@ class OpenCvDebugDisplay(Display):
         if len(self.input.value_dict) == 0:
             return
         if (len(self.input.value_dict) != self._number_of_elements or
-                time.time() - self._last_layout_evaluation > self.REEVALUATION_INTERVAL_SECONDS):
+                time.time() - self._last_layout_evaluation > self.REEVALUATION_INTERVAL_SECONDS or
+                surface.get_size() != self._surface_size):
             start = time.time()
             self._calculate_layout(surface)
             self.logger.debug(f'Re-calculating layout for {len(self.input.value_dict)} elements '
@@ -118,6 +120,7 @@ class OpenCvDebugDisplay(Display):
 
     def _calculate_layout(self, surface: pygame.Surface):
         frame_sizes = [(f.width, f.height) for f in self.input.value_dict.values()]
+        self._surface_size = surface.get_size()
         self._layout = best_regular_screen_layout(frame_sizes, surface.get_size())
         self._last_layout_evaluation = time.time()
         self._number_of_elements = len(frame_sizes)
