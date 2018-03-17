@@ -6,7 +6,8 @@ import logwood
 import sys
 
 from async2v.application import Application
-from async2v.graph import draw_application_graph
+from async2v.application.graph import ApplicationGraph
+import async2v.application.graph
 
 
 class ApplicationLauncher:
@@ -23,6 +24,12 @@ class ApplicationLauncher:
 
         graph_parser = subparsers.add_parser('graph')
         graph_parser.add_argument('--source', help='Print dot code instead of creating graph', action='store_true')
+        graph_parser.add_argument('-o', '--output', metavar='FILENAME', default='graph',
+                                  help='Dot source output filename. '
+                                       'The source will be rendered to FILENAME.EXT according to output format.')
+        graph_parser.add_argument('-f', '--format', metavar='FORMAT', default='pdf',
+                                  choices=async2v.application.graph.get_formats(),
+                                  help='Output format')
 
         self._parser = parser
 
@@ -52,7 +59,11 @@ class ApplicationLauncher:
                     break
             app.stop()
         elif args.command == 'graph':
-            draw_application_graph(app.graph, print_source=args.source)
+            graph = ApplicationGraph(app._registry)
+            if args.source:
+                graph.print_source()
+            else:
+                graph.draw(args.output, args.format)
 
     @staticmethod
     def _get_loglevel(args):

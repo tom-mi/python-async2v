@@ -8,7 +8,7 @@ import logwood
 
 from async2v.components.base import Component, IteratingComponent
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT
-from async2v.graph import ApplicationGraph
+from async2v.application.registry import Registry
 from async2v.runner import create_component_runner, BaseComponentRunner
 
 DRAIN_TIMEOUT_SECONDS = 5
@@ -21,7 +21,7 @@ class Application(Thread):
     def __init__(self):
         super().__init__()
         self.logger = logwood.get_logger(self.__class__.__name__)
-        self.graph = ApplicationGraph()
+        self._registry = Registry()
         self._queue = queue.Queue()  # type: queue.Queue
         self._last_read_from_queue = 0  # type: float
         self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
@@ -59,7 +59,7 @@ class Application(Thread):
             self._create_task_with_error_handler(self._handle_events(), self.logger),
         ]
 
-        for component in self.graph.components():
+        for component in self._registry.components():
             if component not in self._component_runners:
                 self._start_component_runner(component)
 
@@ -83,9 +83,9 @@ class Application(Thread):
                 elif event.key == DEREGISTER_EVENT:
                     self._do_deregister(event.value)
                     self._stop_component_runner(event.value)
-                for field in self.graph.inputs_by_key(event.key):
+                for field in self._registry.inputs_by_key(event.key):
                     field.set(event)
-                for component in self.graph.triggered_component_by_key(event.key):
+                for component in self._registry.triggered_component_by_key(event.key):
                     runner = self._component_runners[component]
                     # noinspection PyUnresolvedReferences
                     runner.trigger()
@@ -98,18 +98,18 @@ class Application(Thread):
 
     def _do_register(self, component: Component) -> None:
         self.logger.info('Registering {}', component.id)
-        self.graph.register(component)
+        self._registry.register(component)
         self._connect_output_queue(component)
 
     def _connect_output_queue(self, component: Component):
-        for key, field in self.graph.node_by_component(component).all_outputs.items():
+        for key, field in self._registry.node_by_component(component).all_outputs.items():
             field.set_queue(self._queue)
 
     def _start_component_runner(self, component: Component) -> None:
         self.logger.debug('Starting component runner for component {}', component.id)
         if component in self._component_runners:
             raise ValueError(f'Component {component} already has a runner')
-        node = self.graph.node_by_component(component)
+        node = self._registry.node_by_component(component)
         runner = create_component_runner(node, self._queue)
         self._component_runners[component] = runner
         task = self._create_task_with_error_handler(runner.run(), component.logger)
@@ -117,7 +117,7 @@ class Application(Thread):
 
     def _do_deregister(self, component: Component) -> None:
         self.logger.info('De-registering {}', component.id)
-        self.graph.deregister(component)
+        self._registry.deregister(component)
 
     def _stop_component_runner(self, component: Component) -> None:
         if component not in self._component_runners:

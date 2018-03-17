@@ -8,7 +8,7 @@ import logwood
 from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
 from async2v.event import SHUTDOWN_EVENT, Event
 from async2v.fields import Output, DoubleBufferedField
-from async2v.graph import ComponentNode
+from async2v.application.registry import ComponentNode
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
 
