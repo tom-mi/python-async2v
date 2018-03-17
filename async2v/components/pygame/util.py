@@ -100,7 +100,7 @@ def best_regular_screen_layout(src_frames: List[Tuple[int, int]], target: Tuple[
         ratio = screen_coverage / (target[0] * target[1])
         if ratio > best_ratio:
             best_layout = layout
-
+            best_ratio = ratio
     return best_layout
 
 
