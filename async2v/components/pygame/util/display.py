@@ -117,10 +117,11 @@ def possible_screen_layouts(number_of_frames: int) -> List[Tuple[int, int]]:
     return possible_layouts
 
 
-def normalizer(size: Tuple[int, int], reference: int = 600) -> Callable[[Union[float, int]], int]:
+def length_normalizer(size: Tuple[int, int], reference: int = 600) -> Callable[[Union[float, int]], int]:
     scale = min(size) / reference
 
     def normalize_to_int(value):
         return int(value * scale)
 
     return normalize_to_int
+

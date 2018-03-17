@@ -1,15 +1,13 @@
 import argparse
+import sys
 from typing import List, Tuple
 
 import pygame.display
-import sys
 
 from async2v.components.base import IteratingComponent, ContainerMixin
-from async2v.components.opencv.video import Frame
 from async2v.components.pygame.display import Display
-from async2v.components.pygame.util import configure_display, DisplayConfiguration, list_resolutions, parse_resolution, \
-    DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
-from async2v.fields import LatestBy
+from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
+    parse_resolution, DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
 
 
 class MainWindow(IteratingComponent, ContainerMixin):
