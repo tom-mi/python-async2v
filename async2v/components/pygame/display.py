@@ -9,9 +9,9 @@ from async2v.components.pygame import util
 from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.opencvutil import opencv_to_pygame
 from async2v.components.pygame.util import scale_and_center_preserving_aspect
-from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT
+from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
-from async2v.runner import Fps
+from async2v.runner import Fps, Duration
 
 
 class Display(SubComponent):
@@ -48,6 +48,7 @@ class OpenCvDebugDisplay(Display):
     def __init__(self):
         self.input = LatestBy(OPENCV_FRAME_EVENT, lambda frame: frame.source)  # type: LatestBy[str, Frame]
         self.fps = LatestBy(FPS_EVENT, lambda fps: fps.component_id)  # type: LatestBy[str, Fps]
+        self.duration = LatestBy(DURATION_EVENT, lambda d: d.component_id)  # type: LatestBy[str, Duration]
         self._number_of_elements = 0  # type: int
         self._last_layout_evaluation = 0  # type: float
         self._layout = None  # type: Tuple[int, int]
@@ -59,7 +60,7 @@ class OpenCvDebugDisplay(Display):
     def draw(self, surface: pygame.Surface):
         surface.fill(self.BG_COLOR)
         self._draw_frames(surface)
-        self._draw_fps(surface)
+        self._draw_fps_and_duration(surface)
 
     def _draw_frames(self, surface: pygame.Surface):
         if len(self.input.value_dict) == 0:
@@ -85,19 +86,25 @@ class OpenCvDebugDisplay(Display):
             target_surface = surface.subsurface(target_rect)
             pygame.transform.scale(frame_surface, target_size, target_surface)
 
-    def _draw_fps(self, surface: pygame.Surface):
+    def _draw_fps_and_duration(self, surface: pygame.Surface):
         if not self.fps.value_dict:
             return
         s = util.normalizer(surface.get_size())
-        id_length = max([len(key) for key in self.fps.value_dict])
+        font_size = s(20)
+        combined_keys = sorted(set(list(self.fps.value_dict) + list(self.duration.value_dict)))
+        id_length = max([len(key) for key in combined_keys])
 
         # TODO there might be optimization potential: the fps dict is not updated all the time
-        for i_y, key in enumerate(sorted(self.fps.value_dict)):
-            fps = self.fps.value_dict[key]
-            text = f'{key:{id_length}s}: {fps.current:6.02f} / {fps.target} fps'
-            text_surface, _ = self.FONT.render(text, self.FONT_COLOR, size=s(20))
+        for i_y, key in enumerate(combined_keys):
+            fps = self.fps.value_dict.get(key, None)
+            duration = self.duration.value_dict.get(key, None)
+            text = f'{key:{id_length}s}: '
+            text += f'{duration.duration_seconds:4.03f}s' if duration else ' ' * 7
+            text += ' | '
+            text += f'{fps.current:5.01f}/{fps.target:3d}fps' if fps else ' ' * 12
+            text_surface, r = self.FONT.render(text, self.FONT_COLOR, size=font_size)
             text_rect = text_surface.get_rect()
-            target_rect = text_rect.move(surface.get_width() - text_rect.w, i_y * text_rect.h)
+            target_rect = text_rect.move(surface.get_width() - text_rect.w, i_y * font_size)
             surface.blit(text_surface, target_rect)
 
     def _calculate_layout(self, surface: pygame.Surface):

@@ -3,6 +3,9 @@ import queue
 from collections import deque
 from typing import TypeVar, Generic, Optional, Dict, Callable
 
+import time
+
+from async2v.error import ConfigurationError
 from async2v.event import Event
 
 T = TypeVar('T')
@@ -217,3 +220,27 @@ class Output(Generic[T]):
 
     def push(self, value: T, timestamp: float = None):
         self._queue.put(Event(self._key, value, timestamp))
+
+
+class AveragingOutput(Output[T], Generic[T]):
+    """
+    Push the average of the values collected every count values or after the given interval, whichever happens first.
+    """
+
+    def __init__(self, key: str, count: int = None, interval: float = None):
+        super().__init__(key)
+        if count is None and interval is None:
+            raise ConfigurationError('Please specify at least one of count or interval')
+        self._buffer = []
+        self._last_pushed = 0
+        self._count = count
+        self._interval = interval
+
+    def push(self, value: T, timestamp: float = None):
+        self._buffer.append(value)
+        if ((self._count and len(self._buffer) >= self._count) or
+                (self._interval and time.time() - self._last_pushed > self._interval)):
+            value = sum(self._buffer[1:], self._buffer[0]) / len(self._buffer)
+            super().push(value, timestamp)
+            self._last_pushed = time.time()
+            self._buffer = []

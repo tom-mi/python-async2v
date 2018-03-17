@@ -6,6 +6,7 @@ REGISTER_EVENT = 'async2v.register'
 DEREGISTER_EVENT = 'async2v.deregister'
 SHUTDOWN_EVENT = 'async2v.shutdown'
 OPENCV_FRAME_EVENT = 'async2v.opencv.frame'
+DURATION_EVENT = 'async2v.duration'
 FPS_EVENT = 'async2v.fps'
 
 T = TypeVar('T')

@@ -5,10 +5,10 @@ from typing import TypeVar, Generic, NamedTuple
 
 import logwood
 
-from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
-from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT
-from async2v.fields import Output, DoubleBufferedField
 from async2v.application.registry import ComponentNode
+from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
+from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT, DURATION_EVENT
+from async2v.fields import DoubleBufferedField, AveragingOutput
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
 
@@ -17,6 +17,30 @@ class Fps(NamedTuple):
     component_id: str
     current: float
     target: int
+
+    def __add__(self, other: 'Fps'):
+        if self.component_id != other.component_id:
+            raise ValueError('Cannot add fps of different components')
+        return Fps(self.component_id, self.current + other.current, self.target)
+
+    def __truediv__(self, other: int):
+        return Fps(self.component_id, self.current / other, self.target)
+
+
+class Duration(NamedTuple):
+    component_id: str
+    duration_seconds: float
+
+    def __add__(self, other: 'Duration'):
+        if self.component_id != other.component_id:
+            raise ValueError('Cannot add durations of different components')
+        return Duration(self.component_id, self.duration_seconds + other.duration_seconds)
+
+    def __truediv__(self, other: int):
+        return Duration(self.component_id, self.duration_seconds / other)
+
+
+METRIC_AVERAGING_INTERVAL_SECONDS = 1
 
 
 def create_component_runner(node: ComponentNode, main_queue: queue.Queue):
@@ -38,7 +62,7 @@ class BaseComponentRunner(Generic[C]):
         self._stopped = asyncio.Event()
         self._queue = main_queue
         self.logger = logwood.get_logger(self.__class__.__name__)
-        self.duration = Output('async2v.process_duration')
+        self.duration = AveragingOutput(DURATION_EVENT, interval=METRIC_AVERAGING_INTERVAL_SECONDS)
         self.duration.set_queue(main_queue)
 
     def stop(self):
@@ -49,17 +73,14 @@ class BaseComponentRunner(Generic[C]):
         raise NotImplementedError
 
     def _publish_duration(self, duration: float) -> None:
-        self.duration.push({
-            'id': self._component.id,
-            'duration_seconds': duration,
-        })
+        self.duration.push(Duration(self._component.id, duration))
 
 
 class IteratingComponentRunner(BaseComponentRunner):
 
     def __init__(self, node: ComponentNode, main_queue: queue.Queue):
         super().__init__(node, main_queue)
-        self.fps = Output(FPS_EVENT)
+        self.fps = AveragingOutput(FPS_EVENT, interval=METRIC_AVERAGING_INTERVAL_SECONDS)
         self.fps.set_queue(main_queue)
         self._smoothed_fps = 0
         self._fps_last_published = 0
@@ -95,10 +116,7 @@ class IteratingComponentRunner(BaseComponentRunner):
 
     def _publish_fps(self, current_delta: float) -> None:
         self._smoothed_fps = (self._smoothed_fps + 1 / current_delta) / 2
-        now = time.time()
-        if now - self._fps_last_published > 1:
-            self.fps.push(Fps(self._component.id, self._smoothed_fps, self._component.target_fps))
-            self._fps_last_published = now
+        self.fps.push(Fps(self._component.id, self._smoothed_fps, self._component.target_fps))
 
 
 class EventDrivenComponentRunner(BaseComponentRunner[EventDrivenComponent]):
