@@ -1,16 +1,22 @@
 import asyncio
 import queue
 import time
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, NamedTuple
 
 import logwood
 
 from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
-from async2v.event import SHUTDOWN_EVENT, Event
+from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT
 from async2v.fields import Output, DoubleBufferedField
 from async2v.application.registry import ComponentNode
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
+
+
+class Fps(NamedTuple):
+    component_id: str
+    current: float
+    target: int
 
 
 def create_component_runner(node: ComponentNode, main_queue: queue.Queue):
@@ -53,7 +59,7 @@ class IteratingComponentRunner(BaseComponentRunner):
 
     def __init__(self, node: ComponentNode, main_queue: queue.Queue):
         super().__init__(node, main_queue)
-        self.fps = Output('async2v.fps')
+        self.fps = Output(FPS_EVENT)
         self.fps.set_queue(main_queue)
         self._smoothed_fps = 0
         self._fps_last_published = 0
@@ -91,11 +97,7 @@ class IteratingComponentRunner(BaseComponentRunner):
         self._smoothed_fps = (self._smoothed_fps + 1 / current_delta) / 2
         now = time.time()
         if now - self._fps_last_published > 1:
-            self.fps.push({
-                'id': self._component.id,
-                'current': self._smoothed_fps,
-                'target': self._component.target_fps,
-            })
+            self.fps.push(Fps(self._component.id, self._smoothed_fps, self._component.target_fps))
             self._fps_last_published = now
 
 

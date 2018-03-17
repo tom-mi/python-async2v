@@ -101,7 +101,7 @@ class LatestBy(Generic[K, T], DoubleBufferedField[T]):
         self._events = {}  # type: Dict[K, Event[T]]
 
     def _set_event(self, new: Event[T]) -> None:
-        event_class = self._classifier(new)
+        event_class = self._classifier(new.value)
         self._input_events[event_class] = new
 
     def _switch_events(self) -> None:
@@ -112,7 +112,7 @@ class LatestBy(Generic[K, T], DoubleBufferedField[T]):
         return self._events
 
     @property
-    def values(self) -> Dict[K, T]:
+    def value_dict(self) -> Dict[K, T]:
         return dict((k, v.value) for k, v in self._events.items())
 
     @property

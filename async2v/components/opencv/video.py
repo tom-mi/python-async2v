@@ -2,6 +2,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Tuple, NamedTuple
 
+from async2v import event
 from async2v.components.base import IteratingComponent, EventDrivenComponent
 from async2v.fields import Output, Latest
 
@@ -44,7 +45,7 @@ class VideoSource(IteratingComponent):
         self._path = path
         self._target_fps = target_fps
         self.output = Output(key)
-        self.debug_output = Output('async2v.opencv.frame')
+        self.debug_output = Output(event.OPENCV_FRAME_EVENT)
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._capture = None  # type: cv2.VideoCapture
 

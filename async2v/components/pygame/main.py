@@ -37,8 +37,6 @@ class MainWindow(IteratingComponent, ContainerMixin):
     def __init__(self, config: DisplayConfiguration = None, fps: int = 60, displays: [Display] = None):
         super().__init__(displays or [])
         self._fps = fps  # type: int
-        self.debug_input = LatestBy('async2v.opencv.frame',
-                                    lambda event: event.value.source)  # type: LatestBy[str, Frame]
         self._config = config
         self._currently_fullscreen = config.fullscreen  # type: bool
 
