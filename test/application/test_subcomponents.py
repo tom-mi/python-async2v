@@ -1,11 +1,12 @@
-from async2v.components.base import BareComponent, EventDrivenComponent, ContainerMixin
+from async2v.components.base import BareComponent, EventDrivenComponent, ContainerMixin, SubComponent
 from async2v.fields import Output, Buffer
 
 
 def test_sub_component(app):
     source = EventSource()
     sub_component = SampleSubComponent()
-    component = SampleComponent(sub_component)
+    other_sub_component = SampleSubComponent()
+    component = SampleComponent([sub_component, other_sub_component])
 
     app.register(source, component)
     app.start()
@@ -15,9 +16,10 @@ def test_sub_component(app):
     app.stop()
 
     assert sub_component.log == ['1', '2', '3']
+    assert other_sub_component.log == ['1', '2', '3']
 
 
-class SampleSubComponent:
+class SampleSubComponent(SubComponent):
 
     def __init__(self):
         self.input = Buffer('sample', trigger=True)
@@ -33,12 +35,13 @@ class SampleSubComponent:
 
 class SampleComponent(EventDrivenComponent, ContainerMixin):
 
-    def __init__(self, sub_component):
-        super().__init__([sub_component])
-        self._sub_component = sub_component
+    def __init__(self, sub_components):
+        super().__init__(sub_components)
+        self._sub_components = sub_components
 
     async def process(self):
-        self._sub_component.do_something()
+        for sub_component in self._sub_components:
+            sub_component.do_something()
 
 
 class EventSource(BareComponent):
