@@ -9,8 +9,9 @@ from async2v.application import Application
 from async2v.cli import ApplicationLauncher
 from async2v.components.base import EventDrivenComponent
 from async2v.components.opencv.video import VideoSource, Frame
-from async2v.components.pygame.display import OpenCvDisplay
+from async2v.components.pygame.display import OpenCvDisplay, OpenCvDebugDisplay
 from async2v.components.pygame.main import MainWindow
+from async2v.event import OPENCV_FRAME_EVENT
 from async2v.fields import Latest, Output
 
 
@@ -21,7 +22,8 @@ class Launcher(ApplicationLauncher):
 
     def register_application_components(self, args, app: Application):
         source = VideoSource()
-        display = OpenCvDisplay('terminator')
+        #display = OpenCvDisplay('terminator')
+        display = OpenCvDebugDisplay()
         face_detector = FaceDetector()
         terminator_filter = TerminatorFilter()
         main_window_config = MainWindow.config_from_args(args)
@@ -39,6 +41,7 @@ class TerminatorFilter(EventDrivenComponent):
         self.source = Latest('source', trigger=True)  # type: Latest[Frame]
         self.faces = Latest('faces')
         self.output = Output('terminator')  # type: Output[Frame]
+        self.debug_output = Output(OPENCV_FRAME_EVENT)  # type: Output[Frame]
 
     async def process(self):
         if not self.source.value:
@@ -50,7 +53,9 @@ class TerminatorFilter(EventDrivenComponent):
         if self.faces.value is not None:
             for (x, y, w, h) in self.faces.value:
                 cv2.rectangle(red_image, (x, y), (x + w, y + h), (255, 255, 255), 2)
-        self.output.push(Frame(red_image, 'terminator'))
+        frame = Frame(red_image, 'terminator')
+        self.output.push(frame)
+        self.debug_output.push(frame)
 
 
 class FaceDetector(EventDrivenComponent):

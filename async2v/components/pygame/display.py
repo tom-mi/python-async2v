@@ -63,6 +63,9 @@ class OpenCvDebugDisplay(Display):
         self._draw_fps_and_duration(surface)
 
     def _draw_frames(self, surface: pygame.Surface):
+        s = util.normalizer(surface.get_size())
+        font_size = s(20)
+
         if len(self.input.value_dict) == 0:
             return
         if (len(self.input.value_dict) != self._number_of_elements or
@@ -85,6 +88,11 @@ class OpenCvDebugDisplay(Display):
             target_rect = target_rect.move(i_x * element_size[0], i_y * element_size[1])
             target_surface = surface.subsurface(target_rect)
             pygame.transform.scale(frame_surface, target_size, target_surface)
+
+            text_surface, r = self.FONT.render(frame.source, self.FONT_COLOR, size=font_size)
+            text_rect = text_surface.get_rect()
+            target_rect = text_rect.move(i_x * element_size[0], (i_y + 1) * element_size[1] - font_size)
+            surface.blit(text_surface, target_rect)
 
     def _draw_fps_and_duration(self, surface: pygame.Surface):
         if not self.fps.value_dict:
