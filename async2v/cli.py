@@ -61,7 +61,7 @@ class ApplicationLauncher:
         elif args.command == 'graph':
             graph = ApplicationGraph(app._registry)
             if args.source:
-                graph.print_source()
+                print(graph.source())
             else:
                 graph.draw(args.output, args.format)
 

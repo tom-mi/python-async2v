@@ -32,9 +32,9 @@ class ApplicationGraph:
         self._dot.filename = filename
         self._dot.render()
 
-    def print_source(self):
+    def source(self):
         self._build()
-        print(self._dot.source)
+        return self._dot.source
 
     def _build(self):
         if self._dot is not None:

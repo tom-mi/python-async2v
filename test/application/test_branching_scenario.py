@@ -1,5 +1,6 @@
 import time
 
+from async2v.application.graph import ApplicationGraph
 from async2v.components.base import EventDrivenComponent, BareComponent
 from async2v.fields import Output, Buffer, Latest
 
@@ -23,6 +24,23 @@ def test_branching_scenario(app):
     app.stop()
 
     assert sink.data == ['carA', 'boatA', 'bikeA', 'shoesB']
+
+
+def test_graph(app):
+    item_source = ItemSource()
+    label_source = LabelSource()
+    sink = ItemSink()
+    app.register(sink)
+    app.register(item_source)
+    app.register(Labeler())
+    app.register(label_source)
+
+    graph = ApplicationGraph(app._registry)
+    source = graph.source()
+
+    # Only smoke test that graphing compiles and returns a probably valid graph
+    assert source.startswith('digraph {')
+    assert source.endswith('}')
 
 
 class ItemSource(BareComponent):
