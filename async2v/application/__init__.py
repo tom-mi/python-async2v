@@ -74,27 +74,31 @@ class Application(Thread):
             # noinspection PyBroadException
             try:
                 event = await self._loop.run_in_executor(None, lambda: self._queue.get(timeout=0.1))  # type: Event
-                self._last_read_from_queue = time.time()
-                if event.key == SHUTDOWN_EVENT:
-                    self._create_task_with_error_handler(self._shutdown(), self.logger)
-                elif event.key == REGISTER_EVENT:
-                    self._do_register(event.value)
-                    self._start_component_runner(event.value)
-                elif event.key == DEREGISTER_EVENT:
-                    self._do_deregister(event.value)
-                    self._stop_component_runner(event.value)
-                for field in self._registry.inputs_by_key(event.key):
-                    field.set(event)
-                for component in self._registry.triggered_component_by_key(event.key):
-                    runner = self._component_runners[component]
-                    # noinspection PyUnresolvedReferences
-                    runner.trigger()
-
+                while event is not None:
+                    self._last_read_from_queue = time.time()
+                    self._handle_event(event)
+                    event = self._queue.get_nowait()
             except queue.Empty:
                 pass
             except Exception:
                 self.logger.exception('Unexpected error')
                 await self._shutdown()
+
+    def _handle_event(self, event: Event):
+        if event.key == SHUTDOWN_EVENT:
+            self._create_task_with_error_handler(self._shutdown(), self.logger)
+        elif event.key == REGISTER_EVENT:
+            self._do_register(event.value)
+            self._start_component_runner(event.value)
+        elif event.key == DEREGISTER_EVENT:
+            self._do_deregister(event.value)
+            self._stop_component_runner(event.value)
+        for field in self._registry.inputs_by_key(event.key):
+            field.set(event)
+        for component in self._registry.triggered_component_by_key(event.key):
+            runner = self._component_runners[component]
+            # noinspection PyUnresolvedReferences
+            runner.trigger()
 
     def _do_register(self, component: Component) -> None:
         self.logger.info('Registering {}', component.id)
