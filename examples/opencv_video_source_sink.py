@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 import argparse
 
 from async2v.application import Application
@@ -8,7 +9,7 @@ from async2v.components.opencv.video import VideoSource, SimpleDisplaySink
 
 class Launcher(ApplicationLauncher):
 
-    def setup_application_arguments(self, parser: argparse.ArgumentParser):
+    def add_app_arguments(self, parser: argparse.ArgumentParser):
         pass
 
     def register_application_components(self, args, app: Application):
@@ -19,7 +20,7 @@ class Launcher(ApplicationLauncher):
 
 def main():
     launcher = Launcher()
-    launcher()
+    launcher.main()
 
 
 if __name__ == '__main__':

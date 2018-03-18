@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 import argparse
 
 import asyncio
@@ -10,15 +11,19 @@ from async2v.cli import ApplicationLauncher
 from async2v.components.base import EventDrivenComponent
 from async2v.components.opencv.video import VideoSource, Frame
 from async2v.components.pygame.display import OpenCvDisplay, OpenCvDebugDisplay
-from async2v.components.pygame.main import MainWindow
+from async2v.components.pygame.main import MainWindow, MainWindowConfigurator
 from async2v.event import OPENCV_FRAME_EVENT
 from async2v.fields import Latest, Output
 
 
 class Launcher(ApplicationLauncher):
 
-    def setup_application_arguments(self, parser: argparse.ArgumentParser):
-        MainWindow.add_arguments(parser)
+    def __init__(self):
+        super().__init__()
+        self.add_configurator(MainWindowConfigurator())
+
+    def add_app_arguments(self, parser: argparse.ArgumentParser):
+        pass
 
     def register_application_components(self, args, app: Application):
         source = VideoSource()
@@ -28,7 +33,7 @@ class Launcher(ApplicationLauncher):
         ]
         face_detector = FaceDetector()
         terminator_filter = TerminatorFilter()
-        main_window_config = MainWindow.config_from_args(args)
+        main_window_config = MainWindowConfigurator.config_from_args(args)
         main_window = MainWindow(displays, config=main_window_config)
         app.register(source, face_detector, terminator_filter, main_window)
 
@@ -80,7 +85,7 @@ class FaceDetector(EventDrivenComponent):
 
 def main():
     launcher = Launcher()
-    launcher()
+    launcher.main()
 
 
 if __name__ == '__main__':

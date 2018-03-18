@@ -4,37 +4,56 @@ from typing import List, Tuple
 
 import pygame.display
 
+from async2v.application import Application
+from async2v.cli import Configurator, Command
 from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display
+from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
     parse_resolution, DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
 from async2v.error import ConfigurationError
 
 
-class MainWindow(IteratingComponent, ContainerMixin):
+class MainWindowConfigurator(Configurator):
+    class ListResolutionCommand(Command):
+        name = 'list-resolutions'
+        help = 'List supported fullscreen resolutions'
+        needs_app = False
 
-    @staticmethod
-    def add_arguments(parser: argparse.ArgumentParser):
+        @staticmethod
+        def add_arguments(parser: argparse.ArgumentParser):
+            pass
+
+        @staticmethod
+        def __call__(args, app: Application = None):
+            list_resolutions()
+
+    def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Display')
         group.add_argument('--fullscreen', action='store_true', help='Run display in fullscreen')
         group.add_argument('--resizable', action='store_true', help='Run display in a resizable window')
         group.add_argument('--resolution', metavar='WIDTHxHEIGHT', help='Set display resolution')
-        group.add_argument('--list-resolutions', action='store_true', help='List supported resolutions')
+
+    @property
+    def commands(self) -> List[Command]:
+        return [self.ListResolutionCommand()]
 
     @staticmethod
     def config_from_args(args) -> DisplayConfiguration:
-        if args.list_resolutions:
-            list_resolutions()
-            sys.exit()
+        if args.resolution:
+            resolution = parse_resolution(args.resolution)
         else:
-            if args.resolution:
-                resolution = parse_resolution(args.resolution)
-            else:
-                resolution = None
+            resolution = None
         return DisplayConfiguration(resolution, args.fullscreen, args.resizable)
 
-    def __init__(self, displays: List[Display], config: DisplayConfiguration = None, fps: int = 60, ):
-        super().__init__(list(displays))
+
+class MainWindow(IteratingComponent, ContainerMixin):
+
+    def __init__(self, displays: List[Display], keyboard_handler: KeyboardHandler = None,
+                 config: DisplayConfiguration = None, fps: int = 60, ):
+        if keyboard_handler is None:
+            keyboard_handler = NoOpKeyboardHandler()
+        super().__init__([*displays, keyboard_handler])
         if len(displays) == 0:
             raise ConfigurationError('Need at least 1 display')
         elif len(displays) > 9:
@@ -47,6 +66,8 @@ class MainWindow(IteratingComponent, ContainerMixin):
         self._displays = list(displays)  # type: List[Display]
         self._current_display = 0  # type: int
         self._surface = None  # type: pygame.Surface
+
+        self._keyboard_handler = keyboard_handler
 
     @property
     def target_fps(self) -> int:
@@ -66,11 +87,15 @@ class MainWindow(IteratingComponent, ContainerMixin):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.shutdown()
-                if pygame.K_F2 <= event.key <= pygame.K_F10:
+                elif pygame.K_F2 <= event.key <= pygame.K_F10:
                     new_display = event.key - pygame.K_F2
                     self.change_display(new_display)
-                if event.key == pygame.K_F11:
+                elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
+                else:
+                    pass
+                    # self._keyboard_handler.handle_down()
+
             elif event.type in (pygame.VIDEORESIZE, pygame.VIDEOEXPOSE):
                 # TODO clean this up, maybe remove resizable altogether
                 self.logger.info('Video resized')

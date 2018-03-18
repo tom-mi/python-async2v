@@ -1,4 +1,5 @@
 import argparse
+import argcomplete
 
 import time
 from typing import List, Dict
@@ -34,7 +35,7 @@ class Command:
         raise NotImplementedError
 
 
-class LauncherModule:
+class Configurator:
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         raise NotImplementedError
@@ -44,7 +45,7 @@ class LauncherModule:
         raise NotImplementedError
 
 
-class DefaultLauncherModule(LauncherModule):
+class DefaultConfigurator(Configurator):
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         pass
@@ -100,7 +101,7 @@ class DefaultLauncherModule(LauncherModule):
 class ApplicationLauncher:
 
     def __init__(self):
-        self._launchers = [DefaultLauncherModule()]  # type: List[LauncherModule]
+        self._configurators = [DefaultConfigurator()]  # type: List[Configurator]
         self._commands = {}  # type: Dict[str, Command]
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('-v', '--verbose', action='count', default=0)
@@ -108,8 +109,8 @@ class ApplicationLauncher:
 
         self.subparsers = self.parser.add_subparsers(help='command', dest='command')  # type: argparse._SubParsersAction
 
-    def add_module(self, launcher: LauncherModule):
-        self._launchers.append(launcher)
+    def add_configurator(self, configurator: Configurator):
+        self._configurators.append(configurator)
 
     def add_app_arguments(self, parser: argparse.ArgumentParser):
         raise NotImplementedError
@@ -119,6 +120,7 @@ class ApplicationLauncher:
 
     def main(self, args=None):
         self._configure_parser()
+        argcomplete.autocomplete(self.parser)
         args = self.parser.parse_args(args)
         logwood.basic_config(
             format='%(timestamp).6f %(level)-5s %(name)s: %(message)s',
@@ -138,7 +140,7 @@ class ApplicationLauncher:
                 command.__call__(args)
 
     def _configure_parser(self):
-        for launcher in self._launchers:
+        for launcher in self._configurators:
             for command in launcher.commands:
                 cmd_parser = self.subparsers.add_parser(command.name,
                                                         help=command.help)  # type: argparse.ArgumentParser
@@ -149,7 +151,7 @@ class ApplicationLauncher:
 
     def _add_all_app_args(self, parser: argparse.ArgumentParser):
         self.add_app_arguments(parser)
-        for launcher in self._launchers:
+        for launcher in self._configurators:
             launcher.add_app_arguments(parser)
 
     @staticmethod
