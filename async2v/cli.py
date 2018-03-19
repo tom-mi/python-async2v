@@ -26,12 +26,10 @@ class Command:
     def needs_app(self) -> bool:
         raise NotImplementedError
 
-    @staticmethod
-    def add_arguments(parser: argparse.ArgumentParser):
+    def add_arguments(self, parser: argparse.ArgumentParser):
         raise NotImplementedError
 
-    @staticmethod
-    def __call__(args, app: Application = None):
+    def __call__(self, args, app: Application = None):
         raise NotImplementedError
 
 
@@ -59,12 +57,10 @@ class DefaultConfigurator(Configurator):
         help = 'Run the application'
         needs_app = True
 
-        @staticmethod
-        def add_arguments(parser: argparse.ArgumentParser):
+        def add_arguments(self, parser: argparse.ArgumentParser):
             pass
 
-        @staticmethod
-        def __call__(args, app: Application = None):
+        def __call__(self, args, app: Application = None):
             app.start()
             while app.is_alive():
                 try:
@@ -78,8 +74,7 @@ class DefaultConfigurator(Configurator):
         help = 'Draw an application graph using graphviz'
         needs_app = True
 
-        @staticmethod
-        def add_arguments(parser: argparse.ArgumentParser):
+        def add_arguments(self, parser: argparse.ArgumentParser):
             group = parser.add_argument_group('Graph')
             group.add_argument('--source', help='Print dot code instead of creating graph', action='store_true')
             group.add_argument('-o', '--output', metavar='FILENAME', default='graph',
@@ -89,8 +84,7 @@ class DefaultConfigurator(Configurator):
                                choices=async2v.application.graph.get_formats(),
                                help='Output format')
 
-        @staticmethod
-        def __call__(args, app: Application = None):
+        def __call__(self, args, app: Application = None):
             graph = ApplicationGraph(app._registry)
             if args.source:
                 print(graph.source())
@@ -110,15 +104,30 @@ class ApplicationLauncher:
         self.subparsers = self.parser.add_subparsers(help='command', dest='command')  # type: argparse._SubParsersAction
 
     def add_configurator(self, configurator: Configurator):
+        """
+        Add a configurator to be evaluated by argparse.
+        This method needs to be called from the constructor to be effective.
+        """
         self._configurators.append(configurator)
 
     def add_app_arguments(self, parser: argparse.ArgumentParser):
-        raise NotImplementedError
+        """
+        Override this method to specify arguments that are needed to construct the application, i.e. when
+        register_application_components is called.
+        """
+        pass
 
     def register_application_components(self, args, app: Application):
+        """
+        Register your components to the application here, using the parsed comandline args
+        """
         raise NotImplementedError
 
     def main(self, args=None):
+        """
+        Parse the given (or passed to the program, if not specified) commandline arguments and run the appropriate
+        command.
+        """
         self._configure_parser()
         argcomplete.autocomplete(self.parser)
         args = self.parser.parse_args(args)
@@ -151,8 +160,8 @@ class ApplicationLauncher:
 
     def _add_all_app_args(self, parser: argparse.ArgumentParser):
         self.add_app_arguments(parser)
-        for launcher in self._configurators:
-            launcher.add_app_arguments(parser)
+        for configurator in self._configurators:
+            configurator.add_app_arguments(parser)
 
     @staticmethod
     def _get_loglevel(args):

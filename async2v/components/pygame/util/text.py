@@ -2,9 +2,12 @@ from typing import Tuple
 
 import pygame.freetype
 
+from async2v.components.pygame.fonts import BEDSTEAD
 
-def render_hud_text(font: pygame.freetype.Font, surface: pygame.Surface, text: str,
-                    size: int = 0, fgcolor=None, bgcolor=None, position: Tuple[float, float] = (0, 0)):
+
+def render_hud_text(surface: pygame.Surface, text: str,
+                    font: pygame.freetype.Font = BEDSTEAD, size: int = 20,
+                    fgcolor=None, bgcolor=None, position: Tuple[float, float] = (0, 0)):
     lines = text.splitlines()
     preview_rects = [font.get_rect(line, size=size) for line in lines]
     font_line_height = font.get_sized_height(size)

@@ -133,8 +133,8 @@ class OpenCvDebugDisplay(OpenCvMultiDisplay):
                          frame_surface: pygame.Surface) -> None:
         s = length_normalizer(surface.get_size())
         font_size = s(20)
-        render_hud_text(self.FONT, frame_surface, frame.source, font_size,
-                        fgcolor=self.FONT_COLOR, bgcolor=self.FONT_BG_COLOR, position=(0, 1))
+        render_hud_text(frame_surface, frame.source, self.FONT, font_size, fgcolor=self.FONT_COLOR,
+                        bgcolor=self.FONT_BG_COLOR, position=(0, 1))
 
     def after_draw(self, surface: pygame.Surface):
         if not self.fps.value_dict:
@@ -155,5 +155,5 @@ class OpenCvDebugDisplay(OpenCvMultiDisplay):
             text += f'{fps.current:5.01f}/{fps.target:3d}fps' if fps else ' ' * 12
             text += '\n'
 
-        render_hud_text(self.FONT, surface, text, font_size,
-                        fgcolor=self.FONT_COLOR, bgcolor=self.FONT_BG_COLOR, position=(1, 0))
+        render_hud_text(surface, text, self.FONT, font_size, fgcolor=self.FONT_COLOR, bgcolor=self.FONT_BG_COLOR,
+                        position=(1, 0))

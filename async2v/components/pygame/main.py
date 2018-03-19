@@ -49,6 +49,13 @@ class MainWindowConfigurator(Configurator):
 
 class MainWindow(IteratingComponent, ContainerMixin):
 
+    @classmethod
+    def configurator(cls) -> MainWindowConfigurator:
+        """
+        Returns a MainWindowConfigurator, which should be registered via add_configurator in the application launcher.
+        """
+        return MainWindowConfigurator()
+
     def __init__(self, displays: List[Display], keyboard_handler: KeyboardHandler = None,
                  config: DisplayConfiguration = None, fps: int = 60, ):
         if keyboard_handler is None:
@@ -93,8 +100,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
                 elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
                 else:
-                    pass
-                    # self._keyboard_handler.handle_down()
+                    self._keyboard_handler.push_event(event.key, event.scancode, down=True)
+            elif event.type == pygame.KEYUP:
+                self._keyboard_handler.push_event(event.key, event.scancode, down=False)
 
             elif event.type in (pygame.VIDEORESIZE, pygame.VIDEOEXPOSE):
                 # TODO clean this up, maybe remove resizable altogether
