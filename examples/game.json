@@ -1,0 +1,68 @@
+{
+  "start": {
+    "text": "You are in a dark room.",
+    "choices": [
+      {
+        "text": "Scream for help",
+        "goto": "echo"
+      },
+      {
+        "text": "Go forward",
+        "goto": "hole"
+      },
+      {
+        "text": "Jump",
+        "goto": "ceiling"
+      }
+    ]
+  },
+  "dead": {
+    "text": "You are dead.",
+    "choices": [
+      {
+        "text": "Play again",
+        "goto": "start"
+      }
+    ]
+  },
+  "victory": {
+    "text": "After a long climb up the rope,\nyou reach the surface and are finally free!\n\nYou won!",
+    "choices": [
+      {
+        "text": "Play again",
+        "goto": "start"
+      }
+    ]
+  },
+  "echo": {
+    "text": "HELP ... Help ... help ...\nYou hear the echo of your voice fade.",
+    "choices": [
+      {
+        "text": "Wait until it is silent again",
+        "goto": "start"
+      }
+    ]
+  },
+  "hole": {
+    "text": "You fall in a hole which you couldn't see because it was too dark.",
+    "choices": [
+      {
+        "text": "Keep fallin'",
+        "goto": "dead"
+      }
+    ]
+  },
+  "ceiling": {
+    "text": "You get hold of a rope.",
+    "choices": [
+      {
+        "text": "Let go of the rope",
+        "goto": "start"
+      },
+      {
+        "text": "Climb up",
+        "goto": "victory"
+      }
+    ]
+  }
+}
