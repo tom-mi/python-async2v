@@ -1,5 +1,4 @@
 import argparse
-import sys
 from typing import List, Tuple
 
 import pygame.display
@@ -20,12 +19,10 @@ class MainWindowConfigurator(Configurator):
         help = 'List supported fullscreen resolutions'
         needs_app = False
 
-        @staticmethod
-        def add_arguments(parser: argparse.ArgumentParser):
+        def add_arguments(self, parser: argparse.ArgumentParser):
             pass
 
-        @staticmethod
-        def __call__(args, app: Application = None):
+        def __call__(self, args, app: Application = None):
             list_resolutions()
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
@@ -100,9 +97,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
                 elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
                 else:
-                    self._keyboard_handler.push_event(event.key, event.scancode, down=True)
+                    self._keyboard_handler.push_key_down(event.key, event.scancode, event.unicode)
             elif event.type == pygame.KEYUP:
-                self._keyboard_handler.push_event(event.key, event.scancode, down=False)
+                self._keyboard_handler.push_key_up(event.key, event.scancode)
 
             elif event.type in (pygame.VIDEORESIZE, pygame.VIDEOEXPOSE):
                 # TODO clean this up, maybe remove resizable altogether

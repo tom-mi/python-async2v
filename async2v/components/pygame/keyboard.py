@@ -186,6 +186,10 @@ class KeyboardConfigurator(Configurator):
 
 class KeyboardHandler(SubComponent):
     ACTIONS = []
+    COMPLETE_CAPTURE = [pygame.K_RETURN, pygame.K_KP_ENTER]
+    BACK = [pygame.K_BACKSPACE]
+    REPEAT_DELAY_MS = 500
+    REPEAT_INTERVAL_MS = 50
 
     @classmethod
     def configurator(cls) -> KeyboardConfigurator:
@@ -197,19 +201,74 @@ class KeyboardHandler(SubComponent):
     def __init__(self, layout: KeyboardLayout):
         self._layout = layout
         self._pressed = {}
+        self._capture = False  # type: bool
+        self._capture_id = None  # type: str
+        self._capture_text = None  # type: str
+        self._capture_completed = False  # type: bool
 
-    def push_event(self, key: int, scancode: int, down: bool) -> None:
+    def push_key_down(self, key: int, scancode: int, character: str) -> None:
         """
-        This method is used by the framework to push keyboard states to the handler.
+        This method is used by the framework to push KEYDOWN events to the handler.
         You should not need to call this method from your production code.
-        The parameter down is True for KEYDOWN and False for KEYUP events.
         """
-        action = self._layout.action_by_key_or_scancode(key, scancode)
-        self._pressed[action] = down
-        if down:
-            self.key_down(action)
+        if self._capture:
+            if key in self.COMPLETE_CAPTURE:
+                self.text_capture_completed(self._capture_id, self._capture_text)
+                self._capture = False
+                self._capture_completed = True
+                pygame.key.set_repeat()
+            elif key in self.BACK:
+                if len(self._capture_text):
+                    self._capture_text = self._capture_text[:-1]
+                    self.text_capture_update(self._capture_id, self._capture_text)
+            else:
+                self._capture_text += character
+                self.text_capture_update(self._capture_id, self._capture_text)
         else:
-            self.key_up(action)
+            action = self._layout.action_by_key_or_scancode(key, scancode)
+            if action:
+                self._pressed[action] = True
+                self.key_down(action)
+
+    def push_key_up(self, key: int, scancode: int) -> None:
+        """
+        This method is used by the framework to push KEYUP events to the handler.
+        You should not need to call this method from your production code.
+        """
+        if self._capture_completed and key in self.COMPLETE_CAPTURE:
+            self._capture_completed = False
+        elif not self._capture:
+            action = self._layout.action_by_key_or_scancode(key, scancode)
+            if action:
+                self._pressed[action] = False
+                self.key_up(action)
+
+    def capture_text(self, capture_id: str, initial=''):
+        """
+        Trigger the capture of a single-line string. Capturing ends when RETURN is pressed.
+        The result, together with the capture_id, is passed to the text function.
+        As a side-effect, artificial key_up events are triggered for all active actions and their state is set to up.
+        """
+        # noinspection PyArgumentList
+        pygame.key.set_repeat(self.REPEAT_DELAY_MS, self.REPEAT_INTERVAL_MS)
+        self._capture = True
+        self._capture_id = capture_id
+        self._capture_text = initial
+        for action in self._pressed:
+            if self._pressed[action]:
+                self._pressed[action] = False
+                self.key_up(action)
+        self.text_capture_update(self._capture_id, self._capture_text)
+
+    def text_capture_completed(self, capture_id: str, text: str):
+        """
+        Override this method to receive captured text.
+        """
+
+    def text_capture_update(self, capture_id: str, text: str):
+        """
+        Override this method to receive changes to the currently captured text.
+        """
 
     def is_pressed(self, action: str) -> bool:
         """
@@ -240,6 +299,9 @@ class KeyboardHandler(SubComponent):
 
 
 class NoOpKeyboardHandler(KeyboardHandler):
+    def __init__(self):
+        super().__init__(KeyboardLayout({}, {}))
+
     def key_down(self, action: str) -> None:
         pass
 

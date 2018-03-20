@@ -110,16 +110,48 @@ def test_keyboard_handler():
     layout = configurator.default_layout()
     handler = MyKeyboardHandler(layout)
 
-    handler.push_event(pygame.K_w, 0, True)
+    handler.push_key_down(pygame.K_w, 0, '')
     assert handler.is_pressed('forward')
     assert not handler.is_pressed('backward')
-    handler.push_event(pygame.K_w, 0, False)
-    handler.push_event(0, 39, True)
+    handler.push_key_up(pygame.K_w, 0)
+    handler.push_key_down(0, 39, '')
     assert not handler.is_pressed('forward')
     assert handler.is_pressed('backward')
-    handler.push_event(0, 39, False)
+    handler.push_key_up(0, 39)
 
     assert handler.log == ['forward_down', 'forward_up', 'backward_down', 'backward_up']
+
+
+def test_keyboard_handler_text_capture():
+    pygame.display.init()  # required as pygame.key.set_repeat() is called in tested code
+
+    configurator = MyKeyboardHandler.configurator()
+    layout = configurator.default_layout()
+    handler = MyKeyboardHandler(layout)
+
+    handler.push_key_down(pygame.K_w, 0, 'W')
+    handler.capture_text('capture', 'S')
+    assert not handler.is_pressed('forward')
+    handler.push_key_down(pygame.K_s, 39, 'S')
+    handler.push_key_up(pygame.K_w, 0)
+    assert not handler.is_pressed('backward')
+    handler.push_key_up(pygame.K_s, 39)
+    handler.push_key_down(pygame.K_s, 39, 'S')
+    handler.push_key_up(pygame.K_s, 39)
+    handler.push_key_down(pygame.K_BACKSPACE, 0, 'X')
+    handler.push_key_up(pygame.K_BACKSPACE, 0)
+    handler.push_key_down(pygame.K_d, 40, 'D')
+    handler.push_key_up(pygame.K_d, 40)
+    handler.push_key_down(pygame.K_RETURN, 0, 'RETURN')
+    assert not handler.is_pressed('enter')
+    handler.push_key_up(pygame.K_RETURN, 0)
+    handler.push_key_down(pygame.K_d, 40, 'D')
+    handler.push_key_up(pygame.K_d, 40)
+    handler.push_key_down(pygame.K_RETURN, 0, 'RETURN')
+    handler.push_key_up(pygame.K_RETURN, 0)
+
+    assert handler.log == ['forward_down', 'forward_up', 'text:capture:SSD', 'right_down', 'right_up', 'enter_down',
+                           'enter_up']
 
 
 class MyKeyboardHandler(KeyboardHandler):
@@ -128,11 +160,15 @@ class MyKeyboardHandler(KeyboardHandler):
         Action('left', ['a', 'sc_38']),
         Action('backward', ['s', 'sc_39']),
         Action('right', ['d', 'sc_40']),
+        Action('enter', ['RETURN'])
     ]
 
     def __init__(self, layout: KeyboardLayout):
         super().__init__(layout)
         self.log = []
+
+    def text_capture_completed(self, capture_id: str, text: str):
+        self.log.append('text:' + capture_id + ':' + text)
 
     def key_down(self, action: str) -> None:
         self.log.append(action + '_down')
