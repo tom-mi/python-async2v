@@ -8,20 +8,17 @@ import pygame
 class DisplayConfiguration(NamedTuple):
     resolution: Optional[Tuple[int, int]]
     fullscreen: bool
-    resizable: bool
 
     def __str__(self):
         if self.fullscreen:
             mode = 'fullscreen'
-        elif self.resizable:
-            mode = 'resizable'
         else:
             mode = 'window'
         return f'{self.resolution[0]}x{self.resolution[1]} {mode}'
 
 
-DEFAULT_CONFIG = DisplayConfiguration((800, 600), False, False)
-DEFAULT_FULLSCREEN_CONFIG = DisplayConfiguration(None, True, False)
+DEFAULT_CONFIG = DisplayConfiguration((800, 600), False)
+DEFAULT_FULLSCREEN_CONFIG = DisplayConfiguration(None, True)
 
 
 def list_resolutions():
@@ -42,7 +39,7 @@ def configure_display(config: DisplayConfiguration) -> pygame.Surface:
             resolution = pygame.display.list_modes()[0]
         else:
             resolution = DEFAULT_CONFIG.resolution
-        config = DisplayConfiguration(resolution, config.fullscreen, config.resizable)
+        config = DisplayConfiguration(resolution, config.fullscreen)
 
     flags = _get_best_flags_for_config(config)
     logger.info(f'Setting display mode to {config}')
@@ -60,8 +57,6 @@ def _get_best_flags_for_config(config: DisplayConfiguration):
     logger = logwood.get_logger('pygame')
     if config.fullscreen:
         base_flags = pygame.FULLSCREEN
-    elif config.resizable:
-        base_flags = pygame.RESIZABLE
     else:
         base_flags = 0
 
@@ -124,4 +119,3 @@ def length_normalizer(size: Tuple[int, int], reference: int = 600) -> Callable[[
         return int(value * scale)
 
     return normalize_to_int
-

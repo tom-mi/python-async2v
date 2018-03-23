@@ -28,7 +28,6 @@ class MainWindowConfigurator(Configurator):
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Display')
         group.add_argument('--fullscreen', action='store_true', help='Run display in fullscreen')
-        group.add_argument('--resizable', action='store_true', help='Run display in a resizable window')
         group.add_argument('--resolution', metavar='WIDTHxHEIGHT', help='Set display resolution')
 
     @property
@@ -41,7 +40,7 @@ class MainWindowConfigurator(Configurator):
             resolution = parse_resolution(args.resolution)
         else:
             resolution = None
-        return DisplayConfiguration(resolution, args.fullscreen, args.resizable)
+        return DisplayConfiguration(resolution, args.fullscreen)
 
 
 class MainWindow(IteratingComponent, ContainerMixin):
@@ -100,15 +99,6 @@ class MainWindow(IteratingComponent, ContainerMixin):
                     self._keyboard_handler.push_key_down(event.key, event.scancode, event.unicode)
             elif event.type == pygame.KEYUP:
                 self._keyboard_handler.push_key_up(event.key, event.scancode)
-
-            elif event.type in (pygame.VIDEORESIZE, pygame.VIDEOEXPOSE):
-                # TODO clean this up, maybe remove resizable altogether
-                self.logger.info('Video resized')
-                resolution = event.dict['size']
-                self._surface = configure_display(DisplayConfiguration(resolution, resizable=True, fullscreen=False))
-                self._currently_fullscreen = False
-
-        # TODO add event handler
 
         self._displays[self._current_display].draw(self._surface)
 
