@@ -10,6 +10,7 @@ from async2v.application import Application
 from async2v.cli import Configurator, Command
 from async2v.components.base import SubComponent
 from async2v.error import ConfigurationError
+from async2v.fields import Output, Latest
 
 
 class Action:
@@ -296,6 +297,46 @@ class KeyboardHandler(SubComponent):
         is_pressed method.
         """
         raise NotImplementedError
+
+
+class KeyboardEvent(NamedTuple):
+    action: str
+    active: bool
+
+
+class CaptureTextEvent(NamedTuple):
+    capture_id: str
+    text: str
+    complete: bool
+
+
+class EventBasedKeyboardHandler(KeyboardHandler):
+
+    CAPTURE_TEXT_TRIGGER = 'async2v.keyboard.trigger.capture'
+    CAPTURE_TEXT_EVENT = 'async2v.keyboard.event'
+    KEYBOARD_EVENT = 'async2v.keyboard.event'
+
+    def __init__(self, layout: KeyboardLayout):
+        super().__init__(layout)
+        self.keyboard = Output(self.KEYBOARD_EVENT)
+        self.text = Output(self.KEYBOARD_EVENT)
+        self.capture_trigger = Latest(self.CAPTURE_TEXT_TRIGGER)
+
+    def key_down(self, action: str) -> None:
+        self.keyboard.push(KeyboardEvent(action, True))
+
+    def key_up(self, action: str) -> None:
+        self.keyboard.push(KeyboardEvent(action, False))
+
+    def process(self) -> None:
+        if self.capture_trigger.updated:
+            self.capture_text(self.capture_trigger.value)
+
+    def text_capture_update(self, capture_id: str, text: str):
+        self.text.push(CaptureTextEvent(capture_id, text, complete=False))
+
+    def text_capture_completed(self, capture_id: str, text: str):
+        self.text.push(CaptureTextEvent(capture_id, text, complete=True))
 
 
 class NoOpKeyboardHandler(KeyboardHandler):

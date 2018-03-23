@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
-import os.path
 import argparse
 import json
+import os.path
 from typing import List
 
 import pygame
@@ -11,7 +11,7 @@ from async2v.application import Application
 from async2v.cli import ApplicationLauncher, Configurator, Command
 from async2v.components.base import EventDrivenComponent
 from async2v.components.pygame.display import Display
-from async2v.components.pygame.keyboard import KeyboardHandler, Action, KeyboardLayout
+from async2v.components.pygame.keyboard import Action, EventBasedKeyboardHandler, KeyboardEvent
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.util.display import length_normalizer
 from async2v.components.pygame.util.text import render_hud_text
@@ -39,25 +39,12 @@ class TextDisplay(Display):
                             position=(0.5, 0.4 + i * 0.07))
 
 
-class MyKeyboardHandler(KeyboardHandler):
+class MyKeyboardHandler(EventBasedKeyboardHandler):
     ACTIONS = [
         Action('up', ['UP']),
         Action('down', ['DOWN']),
         Action('choose', ['RETURN']),
     ]
-
-    def __init__(self, layout: KeyboardLayout):
-        super().__init__(layout)
-        self.output = Output('keyboard')
-
-    def key_down(self, action: str) -> None:
-        self.output.push(action)
-
-    def key_up(self, action: str) -> None:
-        pass
-
-    def process(self) -> None:
-        pass
 
 
 class GameConfigurator(Configurator):
@@ -82,7 +69,7 @@ class GameController(EventDrivenComponent):
         self.node = 'start'
         self.selection = 0
 
-        self.keyboard = Buffer('keyboard', trigger=True)
+        self.keyboard = Buffer(EventBasedKeyboardHandler.KEYBOARD_EVENT, trigger=True)  # type: Buffer[KeyboardEvent]
 
         self.text = Output('text')
         self.choices = Output('choices')
@@ -94,17 +81,18 @@ class GameController(EventDrivenComponent):
         changed = False
         choices = self.game[self.node]['choices']
         for event in self.keyboard.values:
-            if event == 'up' and self.selection > 0:
-                self.selection -= 1
-                changed = True
-            elif event == 'down' and self.selection + 1 < len(choices):
-                self.selection += 1
-                changed = True
-            elif event == 'choose' and len(choices):
-                choice = choices[self.selection]
-                self.node = choice['goto']
-                self.selection = 0
-                changed = True
+            if event.active:
+                if event.action == 'up' and self.selection > 0:
+                    self.selection -= 1
+                    changed = True
+                elif event.action == 'down' and self.selection + 1 < len(choices):
+                    self.selection += 1
+                    changed = True
+                elif event.action == 'choose' and len(choices):
+                    choice = choices[self.selection]
+                    self.node = choice['goto']
+                    self.selection = 0
+                    changed = True
 
         if changed:
             self._publish_state()

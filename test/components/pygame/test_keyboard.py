@@ -1,9 +1,12 @@
+import queue
 import textwrap
 
 import pygame
 import pytest
-from async2v.components.pygame.keyboard import Action, KeyboardConfigurator, KeyboardHandler, KeyboardLayout
+from async2v.components.pygame.keyboard import Action, KeyboardConfigurator, KeyboardHandler, KeyboardLayout, \
+    EventBasedKeyboardHandler, KeyboardEvent, CaptureTextEvent
 from async2v.error import ConfigurationError
+from async2v.event import Event
 
 
 @pytest.fixture
@@ -154,13 +157,47 @@ def test_keyboard_handler_text_capture():
                            'enter_up']
 
 
+def test_event_based_keyboard_handler():
+    configurator = MyEventBasedKeyboardHandler.configurator()
+    layout = configurator.default_layout()
+    handler = MyEventBasedKeyboardHandler(layout)
+    q = queue.Queue()
+
+    handler.keyboard.set_queue(q)
+    handler.text.set_queue(q)
+
+    handler.push_key_down(pygame.K_w, 0, 'X')
+    handler.push_key_up(pygame.K_w, 0)
+    handler.push_key_down(0, 39, 'X')
+    handler.push_key_up(0, 39)
+    handler.capture_trigger.set(Event(EventBasedKeyboardHandler.CAPTURE_TEXT_TRIGGER, 'my-text'))
+    handler.capture_trigger.switch()
+    handler.process()
+    handler.push_key_down(pygame.K_w, 0, 'w')
+    handler.push_key_up(pygame.K_w, 0)
+    handler.push_key_down(pygame.K_o, 0, 'Ö')
+    handler.push_key_up(pygame.K_o, 0)
+    handler.push_key_down(pygame.K_RETURN, 0, '')
+    handler.push_key_up(pygame.K_RETURN, 0)
+
+    assert q.get_nowait().value == KeyboardEvent(action='forward', active=True)
+    assert q.get_nowait().value == KeyboardEvent(action='forward', active=False)
+    assert q.get_nowait().value == KeyboardEvent(action='backward', active=True)
+    assert q.get_nowait().value == KeyboardEvent(action='backward', active=False)
+    assert q.get_nowait().value == CaptureTextEvent(capture_id='my-text', text='', complete=False)
+    assert q.get_nowait().value == CaptureTextEvent(capture_id='my-text', text='w', complete=False)
+    assert q.get_nowait().value == CaptureTextEvent(capture_id='my-text', text='wÖ', complete=False)
+    assert q.get_nowait().value == CaptureTextEvent(capture_id='my-text', text='wÖ', complete=True)
+    assert q.qsize() == 0
+
+
 class MyKeyboardHandler(KeyboardHandler):
     ACTIONS = [
         Action('forward', ['w', 'sc_25']),
         Action('left', ['a', 'sc_38']),
         Action('backward', ['s', 'sc_39']),
         Action('right', ['d', 'sc_40']),
-        Action('enter', ['RETURN'])
+        Action('enter', ['RETURN']),
     ]
 
     def __init__(self, layout: KeyboardLayout):
@@ -178,3 +215,10 @@ class MyKeyboardHandler(KeyboardHandler):
 
     def process(self) -> None:
         pass
+
+
+class MyEventBasedKeyboardHandler(EventBasedKeyboardHandler):
+    ACTIONS = [
+        Action('forward', ['w', 'sc_25']),
+        Action('backward', ['s', 'sc_39']),
+    ]

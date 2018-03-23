@@ -1,7 +1,7 @@
 import asyncio
 import queue
 from collections import deque
-from typing import TypeVar, Generic, Optional, Dict, Callable
+from typing import TypeVar, Generic, Optional, Dict, Callable, List
 
 import time
 
@@ -128,20 +128,20 @@ class Buffer(DoubleBufferedField[T], Generic[T]):
     def __init__(self, key: str, maxlen: int = None, trigger: bool = False):
         super().__init__(key, trigger=trigger)
         self._input_buffer = deque(maxlen=maxlen)
-        self._events = []  # type: [Event[T]]
-        self._values = []  # type: [T]
-        self._timestamps = []  # type: [float]
+        self._events = []  # type: List[Event[T]]
+        self._values = []  # type: List[T]
+        self._timestamps = []  # type: List[float]
 
     @property
-    def events(self) -> [Event[T]]:
+    def events(self) -> List[Event[T]]:
         return self._events
 
     @property
-    def values(self) -> [T]:
+    def values(self) -> List[T]:
         return self._values
 
     @property
-    def timestamps(self) -> [float]:
+    def timestamps(self) -> List[float]:
         return self._timestamps
 
     def _set_event(self, new: T) -> None:
@@ -225,6 +225,7 @@ class Output(Generic[T]):
 class AveragingOutput(Output[T], Generic[T]):
     """
     Push the average of the values collected every count values or after the given interval, whichever happens first.
+    The value type T needs to support __add__(T, T) and __truediv__(T, int) to compute a meaningful average.
     """
 
     def __init__(self, key: str, count: int = None, interval: float = None):
