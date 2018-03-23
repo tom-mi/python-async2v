@@ -313,8 +313,8 @@ class CaptureTextEvent(NamedTuple):
 class EventBasedKeyboardHandler(KeyboardHandler):
 
     CAPTURE_TEXT_TRIGGER = 'async2v.keyboard.trigger.capture'
-    CAPTURE_TEXT_EVENT = 'async2v.keyboard.event'
-    KEYBOARD_EVENT = 'async2v.keyboard.event'
+    CAPTURE_TEXT_EVENT = 'async2v.keyboard.text'
+    KEYBOARD_EVENT = 'async2v.keyboard.action'
 
     def __init__(self, layout: KeyboardLayout):
         super().__init__(layout)
