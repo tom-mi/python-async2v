@@ -136,7 +136,8 @@ class VideoSource(IteratingComponent):
             self.output.push(frame)
             self.debug_output.push(frame)
         else:
-            self.logger.error('Could not read frame')
+            self.logger.info('Could not read frame, assuming end of file')
+            self.shutdown()
 
     def _verify_resolution(self, frame: Frame):
         if self._resolution:
