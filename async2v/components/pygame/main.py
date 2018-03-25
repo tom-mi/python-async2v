@@ -10,7 +10,8 @@ from async2v.components.pygame.display import Display
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
-    parse_resolution, DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
+    DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
+from async2v.util import parse_resolution
 from async2v.error import ConfigurationError
 
 

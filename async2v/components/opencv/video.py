@@ -9,6 +9,7 @@ from async2v import event
 from async2v.cli import Configurator, Command
 from async2v.components.base import IteratingComponent, EventDrivenComponent
 from async2v.fields import Output, Latest
+from async2v.util import parse_resolution
 
 try:
     import cv2
@@ -46,6 +47,7 @@ class Frame(NamedTuple):
 class VideoSourceConfig(NamedTuple):
     path: Union[str, int]
     fps: int
+    resolution: Tuple[int, int] = None
 
 
 class VideoSourceConfigurator(Configurator):
@@ -59,6 +61,7 @@ class VideoSourceConfigurator(Configurator):
         source_group.add_argument('--source-file', metavar='PATH', type=str, help='Video file')
         group.add_argument('--source-fps', metavar='FPS', type=int,
                            help='Desired fps of video source. Will be autodetected if not specified')
+        group.add_argument('--source-resolution', metavar='WIDTHxHEIGHT')
 
     @property
     def commands(self) -> List[Command]:
@@ -84,7 +87,11 @@ class VideoSourceConfigurator(Configurator):
             if not fps:
                 print('Could not detect fps. Please specify manually with --source-fps <fps>.')
                 sys.exit(1)
-        return VideoSourceConfig(path, int(fps))
+        if args.source_resolution:
+            resolution = parse_resolution(args.source_resolution)
+        else:
+            resolution = None
+        return VideoSourceConfig(path, int(fps), resolution)
 
 
 class VideoSource(IteratingComponent):
@@ -99,6 +106,8 @@ class VideoSource(IteratingComponent):
         self.output = Output(key)
         self.debug_output = Output(event.OPENCV_FRAME_EVENT)
         self._executor = ThreadPoolExecutor(max_workers=1)
+        self._resolution = config.resolution
+        self._resolution_verified = False
         self._capture = None  # type: cv2.VideoCapture
 
     @property
@@ -114,15 +123,28 @@ class VideoSource(IteratingComponent):
 
     def _create_capture(self):
         self._capture = cv2.VideoCapture(self._path)
+        if self._resolution:
+            self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._resolution[0])
+            self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._resolution[1])
 
     async def process(self):
         ret, image = await asyncio.get_event_loop().run_in_executor(self._executor, self._capture.read)
         if ret:
             frame = Frame(image, self.id)
+            if not self._resolution_verified:
+                self._verify_resolution(frame)
             self.output.push(frame)
             self.debug_output.push(frame)
         else:
             self.logger.error('Could not read frame')
+
+    def _verify_resolution(self, frame: Frame):
+        if self._resolution:
+            w, h = self._resolution
+            if frame.width != w or frame.height != h:
+                raise ValueError(f'Expected resolution {w}x{h}, got {frame.width}x{frame.height}')
+        self._resolution_verified = True
+        self.logger.info(f'Source resolution {frame.width}x{frame.height}')
 
     async def cleanup(self):
         await asyncio.get_event_loop().run_in_executor(self._executor, self._release_capture)

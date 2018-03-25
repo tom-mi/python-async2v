@@ -1,4 +1,3 @@
-import re
 from typing import Tuple, NamedTuple, Optional, List, Callable, Union
 
 import logwood
@@ -44,13 +43,6 @@ def configure_display(config: DisplayConfiguration) -> pygame.Surface:
     flags = _get_best_flags_for_config(config)
     logger.info(f'Setting display mode to {config}')
     return pygame.display.set_mode(resolution, flags)
-
-
-def parse_resolution(value: str) -> Tuple[int, int]:
-    m = re.match(r'^(\d+)x(\d+)$', value)
-    if not m:
-        raise ValueError(f'Invalid resolution {value}')
-    return int(m.group(1)), int(m.group(2))
 
 
 def _get_best_flags_for_config(config: DisplayConfiguration):
