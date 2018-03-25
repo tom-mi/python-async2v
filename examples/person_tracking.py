@@ -75,7 +75,7 @@ class PersonDisplay(EventDrivenComponent):
         self.debug.push(frame)
 
     def _contains_mouse_pointer(self, person: Person) -> bool:
-        if not self.mouse_move.value_dict['display']:
+        if not self.mouse_move.value_dict.get('display', None):
             return False
         x, y = self.mouse_move.value_dict['display'].restored_position
         return person.x <= x <= person.x + person.w and person.y <= y <= person.y + person.h
