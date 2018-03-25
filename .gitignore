@@ -12,3 +12,6 @@ env
 # Default graphs created by async2v
 graph
 graph.pdf
+
+# Default keyboard layout file
+keyboard.conf
