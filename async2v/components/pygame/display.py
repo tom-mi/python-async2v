@@ -1,11 +1,12 @@
 import time
-from typing import Tuple
+from typing import Tuple, List
 
 import pygame
 
 from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
+from async2v.components.pygame.mouse import MouseRegion
 from async2v.components.pygame.util.display import scale_and_center_preserving_aspect, length_normalizer, \
     best_regular_screen_layout
 from async2v.components.pygame.util.opencv import opencv_to_pygame
@@ -17,7 +18,7 @@ from async2v.runner import Fps, Duration
 
 class Display(SubComponent):
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         raise NotImplementedError
 
 
@@ -31,15 +32,16 @@ class OpenCvDisplay(Display):
     def graph_colors(self) -> Tuple[str, str]:
         return '#50A0A0', '#EEFEFE'
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         surface.fill(self.BG_COLOR)
         if not self.input.value:
-            return
+            return []
         frame_surface = opencv_to_pygame(self.input.value)
         offset, target_size = scale_and_center_preserving_aspect(frame_surface.get_size(), surface.get_size())
         target_rect = pygame.Rect(offset, target_size)
         target_surface = surface.subsurface(target_rect)
         pygame.transform.scale(frame_surface, target_size, target_surface)
+        return [MouseRegion(self.input.value.source, target_rect, (self.input.value.width, self.input.value.height))]
 
 
 class OpenCvMultiDisplay(Display):
@@ -64,10 +66,10 @@ class OpenCvMultiDisplay(Display):
         """
         raise NotImplementedError
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         surface.fill(self.BG_COLOR)
         if len(self.frames) == 0:
-            return
+            return []
 
         if (len(self.frames) != self.__number_of_elements or
                 time.time() - self.__last_layout_evaluation > self.REEVALUATION_INTERVAL_SECONDS or
@@ -76,6 +78,7 @@ class OpenCvMultiDisplay(Display):
 
         target_size = surface.get_size()
         element_size = (int(target_size[0] / self.__layout[0]), int(target_size[1] / self.__layout[1]))
+        regions = []
         for i, frame in enumerate(self.frames):
             i_x = i % self.__layout[0]
             i_y = int(i / self.__layout[0])
@@ -87,7 +90,9 @@ class OpenCvMultiDisplay(Display):
             target_surface = surface.subsurface(target_rect)
             pygame.transform.scale(frame_surface, target_size, target_surface)
             self.after_draw_frame(i, frame, surface, target_surface)
+            regions.append(MouseRegion(frame.source, target_rect, (frame.width, frame.height)))
         self.after_draw(surface)
+        return regions
 
     def after_draw_frame(self, frame_index: int, frame: Frame, surface: pygame.Surface,
                          frame_surface: pygame.Surface) -> None:

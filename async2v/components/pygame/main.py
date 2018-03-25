@@ -8,6 +8,7 @@ from async2v.cli import Configurator, Command
 from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
+from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
     parse_resolution, DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
 from async2v.error import ConfigurationError
@@ -52,11 +53,14 @@ class MainWindow(IteratingComponent, ContainerMixin):
         """
         return MainWindowConfigurator()
 
-    def __init__(self, displays: List[Display], keyboard_handler: KeyboardHandler = None,
+    def __init__(self, displays: List[Display],
+                 keyboard_handler: KeyboardHandler = None, mouse_handler: MouseHandler = None,
                  config: DisplayConfiguration = None, fps: int = 60, ):
         if keyboard_handler is None:
             keyboard_handler = NoOpKeyboardHandler()
-        super().__init__([*displays, keyboard_handler])
+        if mouse_handler is None:
+            mouse_handler = NoOpMouseHandler()
+        super().__init__([*displays, keyboard_handler, mouse_handler])
         if len(displays) == 0:
             raise ConfigurationError('Need at least 1 display')
         elif len(displays) > 9:
@@ -71,6 +75,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
         self._surface = None  # type: pygame.Surface
 
         self._keyboard_handler = keyboard_handler
+        self._mouse_handler = mouse_handler
+
+        self._regions = None  # type: List[MouseRegion]
 
     @property
     def target_fps(self) -> int:
@@ -83,8 +90,10 @@ class MainWindow(IteratingComponent, ContainerMixin):
     async def setup(self):
         pygame.display.init()
         self._surface = configure_display(self._config)
+        self._regions = [self._main_region()]
 
     async def process(self):
+        self._mouse_handler.push_regions(self._regions)
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.KEYDOWN:
@@ -99,10 +108,20 @@ class MainWindow(IteratingComponent, ContainerMixin):
                     self._keyboard_handler.push_key_down(event.key, event.scancode, event.unicode)
             elif event.type == pygame.KEYUP:
                 self._keyboard_handler.push_key_up(event.key, event.scancode)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self._mouse_handler.push_button_down(event.pos, event.button)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self._mouse_handler.push_button_up(event.pos, event.button)
+            elif event.type == pygame.MOUSEMOTION:
+                self._mouse_handler.push_movement(event.pos, event.rel, event.buttons)
 
-        self._displays[self._current_display].draw(self._surface)
+        self._regions = [self._main_region()]
+        self._regions += self._displays[self._current_display].draw(self._surface)
 
         pygame.display.flip()
+
+    def _main_region(self) -> MouseRegion:
+        return MouseRegion(ROOT_REGION, self._surface.get_rect(), self._surface.get_size())
 
     def toggle_fullscreen(self):
         if self._config.fullscreen and self._currently_fullscreen:

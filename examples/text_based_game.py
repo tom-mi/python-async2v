@@ -117,7 +117,7 @@ class Launcher(ApplicationLauncher):
         main_window_config = MainWindow.configurator().config_from_args(args)
         layout = MyKeyboardHandler.configurator().layout_from_args(args)
         keyboard = MyKeyboardHandler(layout)
-        main = MainWindow([display], keyboard, main_window_config)
+        main = MainWindow([display], keyboard, config=main_window_config)
         game = GameConfigurator.load_game(args)
         game_controller = GameController(game)
         app.register(game_controller, main)
