@@ -38,6 +38,7 @@ class Action:
 class KeyboardLayout(NamedTuple):
     actions_by_key: Dict[int, str]
     actions_by_scancode: Dict[int, str]
+    help: List[Tuple[str, str]]
 
     def action_by_key_or_scancode(self, key: int, scancode: int) -> str:
         result = self.actions_by_key.get(key, None)
@@ -113,22 +114,27 @@ class KeyboardConfigurator(Configurator):
 
         actions_by_key = {}
         actions_by_scancode = {}
+        help_texts = []
         for action in self._actions:
             if action.name not in bindings_by_action:
                 logger.warning(f'Missing keybindings for action {action.name}')
+                help_texts.append((action.description or action.name, '<unassigned>'))
             else:
                 bindings = bindings_by_action.pop(action.name)
+                help_texts.append((action.description or action.name, ', '.join(bindings) or '<unassigned>'))
                 self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, bindings)
         for action_name in bindings_by_action:
             logger.warning(f'Extra keybindings for unknown action {action_name}')
-        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode)
+        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
     def default_layout(self) -> KeyboardLayout:
         actions_by_key = {}
         actions_by_scancode = {}
+        help_texts = []
         for action in self._actions:
+            help_texts.append((action.description or action.name, ', '.join(action.defaults) or '<unassigned>'))
             self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, action.defaults)
-        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode)
+        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
     def save_default_layout(self, path: str, verbose: bool = False):
         lines = []
@@ -311,7 +317,6 @@ class CaptureTextEvent(NamedTuple):
 
 
 class EventBasedKeyboardHandler(KeyboardHandler):
-
     CAPTURE_TEXT_TRIGGER = 'async2v.keyboard.trigger.capture'
     CAPTURE_TEXT_EVENT = 'async2v.keyboard.text'
     KEYBOARD_EVENT = 'async2v.keyboard.action'
@@ -341,7 +346,7 @@ class EventBasedKeyboardHandler(KeyboardHandler):
 
 class NoOpKeyboardHandler(KeyboardHandler):
     def __init__(self):
-        super().__init__(KeyboardLayout({}, {}))
+        super().__init__(KeyboardLayout({}, {}, []))
 
     def key_down(self, action: str) -> None:
         pass

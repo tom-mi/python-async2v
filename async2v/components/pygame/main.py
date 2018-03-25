@@ -10,7 +10,8 @@ from async2v.components.pygame.display import Display
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
-    DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG
+    DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG, length_normalizer
+from async2v.components.pygame.util.text import render_hud_text
 from async2v.util import parse_resolution
 from async2v.error import ConfigurationError
 
@@ -46,6 +47,8 @@ class MainWindowConfigurator(Configurator):
 
 
 class MainWindow(IteratingComponent, ContainerMixin):
+    HELP_FONT_COLOR = (255, 255, 255)
+    HELP_BG_COLOR = (0, 0, 0, 120)
 
     @classmethod
     def configurator(cls) -> MainWindowConfigurator:
@@ -80,6 +83,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
 
         self._regions = None  # type: List[MouseRegion]
 
+        self._help_visible = False
+        self._help_text = self._generate_help_text()
+
     @property
     def target_fps(self) -> int:
         return self._fps
@@ -100,6 +106,8 @@ class MainWindow(IteratingComponent, ContainerMixin):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.shutdown()
+                elif event.key == pygame.K_F1:
+                    self._help_visible = not self._help_visible
                 elif pygame.K_F2 <= event.key <= pygame.K_F10:
                     new_display = event.key - pygame.K_F2
                     self.change_display(new_display)
@@ -118,6 +126,13 @@ class MainWindow(IteratingComponent, ContainerMixin):
 
         self._regions = [self._main_region()]
         self._regions += self._displays[self._current_display].draw(self._surface)
+
+        if self._help_visible:
+            s = length_normalizer(self._surface.get_size())
+            render_hud_text(self._surface, self._help_text,
+                            position=(0.5, 0.5),
+                            size=min(s(30), self._surface.get_height() // (1.5 * len(self._help_text.splitlines()))),
+                            fgcolor=self.HELP_FONT_COLOR, bgcolor=self.HELP_BG_COLOR)
 
         pygame.display.flip()
 
@@ -138,6 +153,21 @@ class MainWindow(IteratingComponent, ContainerMixin):
             self._current_display = new_display
         else:
             self.logger.error(f'Cannot switch to invalid display {new_display}')
+
+    def _generate_help_text(self):
+        entries = [
+            ('Exit', 'ESCAPE'),
+            ('Toggle help', 'F1'),
+        ]
+        if len(self._displays) > 1:
+            entries += [('Switch displays', f'F2 .. F{len(self._displays) + 1}')]
+        entries += [
+            ('Toggle fullscreen', 'F11'),
+        ]
+        entries += self._keyboard_handler._layout.help
+
+        desc_len = max(len(d) for d, k in entries)
+        return '\n'.join(f'{d:{desc_len}s}  {k}' for d, k in entries)
 
     async def cleanup(self):
         pygame.display.quit()

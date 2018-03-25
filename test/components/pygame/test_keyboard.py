@@ -58,6 +58,26 @@ def test_load_layout(config: KeyboardConfigurator, layout_file, key, scancode, e
     assert layout.action_by_key_or_scancode(key, scancode) == expected_action
 
 
+def test_default_layout_help(config: KeyboardConfigurator):
+    layout = config.default_layout()
+
+    assert layout.help == [
+        ('Move forward', 'w'),
+        ('backward', 'DOWN, sc_39'),
+        ('left', '<unassigned>'),
+    ]
+
+
+def test_load_layout_help(config: KeyboardConfigurator, layout_file):
+    layout = config.load_layout(layout_file)
+
+    assert layout.help == [
+        ('Move forward', 'UP, KP8'),
+        ('backward', '<unassigned>'),
+        ('left', 'sc_38'),
+    ]
+
+
 @pytest.mark.parametrize('binding', ['A', 'K_a', 'sc_', 'sc_1x'])
 def test_default_layout_fails_to_parse_for_invalid_bindings(binding):
     with pytest.raises(ConfigurationError):

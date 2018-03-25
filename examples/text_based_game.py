@@ -13,6 +13,7 @@ from async2v.components.base import EventDrivenComponent
 from async2v.components.pygame.display import Display
 from async2v.components.pygame.keyboard import Action, EventBasedKeyboardHandler, KeyboardEvent
 from async2v.components.pygame.main import MainWindow
+from async2v.components.pygame.mouse import MouseRegion
 from async2v.components.pygame.util.display import length_normalizer
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.fields import Latest, Buffer, Output
@@ -27,16 +28,17 @@ class TextDisplay(Display):
         self.text = Latest('text')
         self.choices = Latest('choices')
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         s = length_normalizer(surface.get_size())
         if self.text.value is None or self.choices.value is None:
-            return
+            return []
         surface.fill((0, 0, 0))
         render_hud_text(surface, self.text.value, size=s(18), fgcolor=self.TEXT_COLOR, position=(0.5, 0.2))
         for i, choice in enumerate(self.choices.value):
             color, bgcolor = self.SELECTED_COLORS if choice['selected'] else self.UNSELECTED_COLORS
             render_hud_text(surface, choice['text'], size=s(20), fgcolor=color, bgcolor=bgcolor,
                             position=(0.5, 0.4 + i * 0.07))
+        return []
 
 
 class MyKeyboardHandler(EventBasedKeyboardHandler):
