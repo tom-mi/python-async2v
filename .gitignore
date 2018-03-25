@@ -8,3 +8,7 @@
 __pycache__
 
 env
+
+# Default graphs created by async2v
+graph
+graph.pdf
