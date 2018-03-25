@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
-import argparse
 import asyncio
 from typing import NamedTuple, List
 
@@ -14,7 +13,7 @@ from async2v.components.opencv.video import VideoSource, Frame
 from async2v.components.pygame.display import OpenCvDebugDisplay, OpenCvDisplay
 from async2v.components.pygame.main import MainWindowConfigurator, MainWindow
 from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseEvent, MouseMovement
-from async2v.fields import Latest, Output, Buffer
+from async2v.fields import Latest, Output, Buffer, LatestBy
 
 
 class Person(NamedTuple):
@@ -39,7 +38,11 @@ class PersonDetector(EventDrivenComponent):
         self.output.push(people)
 
     def _detect(self):
-        return self._hog.detectMultiScale(self.source.value.image)
+        step_size = int(self.source.value.width / 200)
+        scale = 1.5
+        padding = 16
+        return self._hog.detectMultiScale(self.source.value.image, winStride=(step_size, step_size),
+                                          scale=scale, padding=(padding, padding), useMeanshiftGrouping=True)
 
 
 class PersonDisplay(EventDrivenComponent):
@@ -53,7 +56,8 @@ class PersonDisplay(EventDrivenComponent):
         self.output = Output('display')
         self.debug = Output(event.OPENCV_FRAME_EVENT)
         self.mouse = Buffer(EventBasedMouseHandler.MOUSE_EVENT)  # type: Buffer[MouseEvent]
-        self.mouse_move = Latest(EventBasedMouseHandler.MOUSE_MOVEMENT)  # type: Latest[MouseMovement]
+        self.mouse_move = LatestBy(EventBasedMouseHandler.MOUSE_MOVEMENT,
+                                   lambda m: m.region.name)  # type: LatestBy[MouseMovement]
 
     async def process(self):
         image = self.source.value.image.copy()
@@ -71,9 +75,9 @@ class PersonDisplay(EventDrivenComponent):
         self.debug.push(frame)
 
     def _contains_mouse_pointer(self, person: Person) -> bool:
-        if not self.mouse_move.value:
+        if not self.mouse_move.value_dict['display']:
             return False
-        x, y = self.mouse_move.value.restored_position
+        x, y = self.mouse_move.value_dict['display'].restored_position
         return person.x <= x <= person.x + person.w and person.y <= y <= person.y + person.h
 
 
@@ -82,12 +86,10 @@ class Launcher(ApplicationLauncher):
     def __init__(self):
         super().__init__()
         self.add_configurator(MainWindowConfigurator())
-
-    def add_app_arguments(self, parser: argparse.ArgumentParser):
-        pass
+        self.add_configurator(VideoSource.configurator())
 
     def register_application_components(self, args, app: Application):
-        source = VideoSource()
+        source = VideoSource(VideoSource.configurator().config_from_args(args))
         person_detector = PersonDetector()
         person_display = PersonDisplay()
         displays = [

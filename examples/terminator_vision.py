@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
-import argparse
 
 import asyncio
+
 import cv2
 import numpy as np
 
@@ -21,12 +21,10 @@ class Launcher(ApplicationLauncher):
     def __init__(self):
         super().__init__()
         self.add_configurator(MainWindowConfigurator())
-
-    def add_app_arguments(self, parser: argparse.ArgumentParser):
-        pass
+        self.add_configurator(VideoSource.configurator())
 
     def register_application_components(self, args, app: Application):
-        source = VideoSource()
+        source = VideoSource(VideoSource.configurator().config_from_args(args))
         displays = [
             OpenCvDisplay('terminator'),
             OpenCvDebugDisplay(),
