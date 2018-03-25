@@ -1,8 +1,11 @@
+import argparse
 import time
-from typing import Tuple, List
+from enum import Enum, auto
+from typing import Tuple, List, NamedTuple
 
 import pygame
 
+from async2v.cli import Configurator, Command
 from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
@@ -14,12 +17,76 @@ from async2v.components.pygame.util.text import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
 from async2v.runner import Fps, Duration
+from async2v.util import parse_resolution
 
 
 class Display(SubComponent):
 
     def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         raise NotImplementedError
+
+
+class AuxiliaryDisplayConfig(NamedTuple):
+    resolution: Tuple[int, int]
+
+
+class AuxiliaryDisplayConfigurator(Configurator):
+
+    # TODO allow more flexible & generic configuration
+    def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
+        group = parser.add_argument_group('Auxiliary Display',
+                                          'Auxiliary display, such as a projector. The device is only enabled if a '
+                                          'resolution is specified. The resolution needs to match the already '
+                                          'configured resolution of the display as part of the virtual display. '
+                                          'Also, the display is only enabled while the main window is switched to '
+                                          'fullscreen mode. Position the auxiliary display right of the main display, '
+                                          'with the upper borders at the same height.')
+        group.add_argument('--aux-resolution', metavar='WIDTHxHEIGHT')
+
+    @property
+    def commands(self) -> List[Command]:
+        return []
+
+    @staticmethod
+    def config_from_args(args):
+        if args.aux_resolution:
+            resolution = parse_resolution(args.aux_resolution)
+        else:
+            resolution = None
+        return AuxiliaryDisplayConfig(resolution)
+
+
+class AuxiliaryDisplay(SubComponent):
+
+    @staticmethod
+    def configurator() -> AuxiliaryDisplayConfigurator:
+        return AuxiliaryDisplayConfigurator()
+
+    def __init__(self, config: AuxiliaryDisplayConfig):
+        self._resolution = config.resolution
+
+    @property
+    def resolution(self) -> Tuple[int, int]:
+        return self._resolution
+
+    def draw(self, surface: pygame.Surface) -> None:
+        raise NotImplementedError
+
+
+class AuxiliaryOpenCvDisplay(AuxiliaryDisplay):
+    """
+    Draw OpenCV frames to the auxiliary display surface.
+    Note that the frames are scaled without preserving the aspect ratio. This makes it easy to draw on the whole
+    available surface without knowing the target aspect ratio.
+    """
+
+    def __init__(self, config: AuxiliaryDisplayConfig, source):
+        super().__init__(config)
+        self.input = Latest(source)  # type: Latest[Frame]
+
+    def draw(self, surface: pygame.Surface) -> None:
+        frame_surface = opencv_to_pygame(self.input.value)
+        pygame.transform.scale(frame_surface, surface.get_size(), surface)
 
 
 class OpenCvDisplay(Display):

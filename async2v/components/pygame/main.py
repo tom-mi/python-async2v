@@ -6,14 +6,14 @@ import pygame.display
 from async2v.application import Application
 from async2v.cli import Configurator, Command
 from async2v.components.base import IteratingComponent, ContainerMixin
-from async2v.components.pygame.display import Display
+from async2v.components.pygame.display import Display, AuxiliaryDisplay
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
 from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
     DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG, length_normalizer
 from async2v.components.pygame.util.text import render_hud_text
-from async2v.util import parse_resolution
 from async2v.error import ConfigurationError
+from async2v.util import parse_resolution
 
 
 class MainWindowConfigurator(Configurator):
@@ -57,14 +57,19 @@ class MainWindow(IteratingComponent, ContainerMixin):
         """
         return MainWindowConfigurator()
 
-    def __init__(self, displays: List[Display],
+    def __init__(self, displays: List[Display], auxiliary_display: AuxiliaryDisplay = None,
                  keyboard_handler: KeyboardHandler = None, mouse_handler: MouseHandler = None,
                  config: DisplayConfiguration = None, fps: int = 60, ):
         if keyboard_handler is None:
             keyboard_handler = NoOpKeyboardHandler()
         if mouse_handler is None:
             mouse_handler = NoOpMouseHandler()
-        super().__init__([*displays, keyboard_handler, mouse_handler])
+        if auxiliary_display and auxiliary_display.resolution is None:
+            auxiliary_display = None
+        sub_components = [*displays, keyboard_handler, mouse_handler]
+        if auxiliary_display:
+            sub_components.append(auxiliary_display)
+        super().__init__(sub_components)
         if len(displays) == 0:
             raise ConfigurationError('Need at least 1 display')
         elif len(displays) > 9:
@@ -77,6 +82,11 @@ class MainWindow(IteratingComponent, ContainerMixin):
         self._displays = list(displays)  # type: List[Display]
         self._current_display = 0  # type: int
         self._surface = None  # type: pygame.Surface
+
+        self._aux_display = None
+        self._aux_surface = None
+        if auxiliary_display:
+            self._aux_display = auxiliary_display
 
         self._keyboard_handler = keyboard_handler
         self._mouse_handler = mouse_handler
@@ -97,6 +107,7 @@ class MainWindow(IteratingComponent, ContainerMixin):
     async def setup(self):
         pygame.display.init()
         self._surface = configure_display(self._config)
+        self._configure_aux_display()
         self._regions = [self._main_region()]
 
     async def process(self):
@@ -127,6 +138,9 @@ class MainWindow(IteratingComponent, ContainerMixin):
         self._regions = [self._main_region()]
         self._regions += self._displays[self._current_display].draw(self._surface)
 
+        if self._aux_surface:
+            self._aux_display.draw(self._aux_surface)
+
         if self._help_visible:
             s = length_normalizer(self._surface.get_size())
             render_hud_text(self._surface, self._help_text,
@@ -147,6 +161,18 @@ class MainWindow(IteratingComponent, ContainerMixin):
         else:
             self._surface = configure_display(self._config)
         self._currently_fullscreen = not self._currently_fullscreen
+        self._configure_aux_display()
+
+    def _configure_aux_display(self):
+        if self._currently_fullscreen and self._aux_display:
+            w, h = self._surface.get_size()
+            a_w, a_h = self._aux_display.resolution
+            target_main_rect = pygame.Rect(0, 0, w - a_w, h)
+            target_aux_rect = pygame.Rect(w - a_w, 0, a_w, a_h)
+            self._aux_surface = self._surface.subsurface(target_aux_rect)
+            self._surface = self._surface.subsurface(target_main_rect)
+        else:
+            self._aux_surface = None
 
     def change_display(self, new_display: int):
         if 0 <= new_display < len(self._displays):
