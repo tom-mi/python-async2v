@@ -54,13 +54,13 @@ class VideoSourceConfigurator(Configurator):
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Video Source',
-                                          'Defaults to camera 0. If a video file is specified, the application will '
-                                          'terminate after playback is finished.')
+                                          'Defaults to camera 0. If a video file is specified, the application '
+                                          'terminates on end of file.')
         source_group = group.add_mutually_exclusive_group()
         source_group.add_argument('--source-camera', metavar='CAM', type=int, help='Camera index')
         source_group.add_argument('--source-file', metavar='PATH', type=str, help='Video file')
         group.add_argument('--source-fps', metavar='FPS', type=int,
-                           help='Desired fps of video source. Will be autodetected if not specified')
+                           help='Fps of video source, autodetected if not specified')
         group.add_argument('--source-resolution', metavar='WIDTHxHEIGHT')
 
     @property

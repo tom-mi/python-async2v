@@ -29,8 +29,8 @@ class MainWindowConfigurator(Configurator):
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Display')
-        group.add_argument('--fullscreen', action='store_true', help='Run display in fullscreen')
-        group.add_argument('--resolution', metavar='WIDTHxHEIGHT', help='Set display resolution')
+        group.add_argument('--fullscreen', action='store_true')
+        group.add_argument('--resolution', metavar='WIDTHxHEIGHT')
 
     @property
     def commands(self) -> List[Command]:
