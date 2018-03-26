@@ -1,5 +1,6 @@
 import argparse
 from typing import List, Tuple
+from datetime import datetime
 
 import pygame.display
 
@@ -124,6 +125,8 @@ class MainWindow(IteratingComponent, ContainerMixin):
                     self.change_display(new_display)
                 elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
+                elif event.key == pygame.K_F12:
+                    self._take_screenshot()
                 else:
                     self._keyboard_handler.push_key_down(event.key, event.scancode, event.unicode)
             elif event.type == pygame.KEYUP:
@@ -189,11 +192,17 @@ class MainWindow(IteratingComponent, ContainerMixin):
             entries += [('Switch displays', f'F2 .. F{len(self._displays) + 1}')]
         entries += [
             ('Toggle fullscreen', 'F11'),
+            ('Take screenshot', 'F12'),
         ]
         entries += self._keyboard_handler._layout.help
 
         desc_len = max(len(d) for d, k in entries)
         return '\n'.join(f'{d:{desc_len}s}  {k}' for d, k in entries)
+
+    def _take_screenshot(self):
+        path = f'screenshot-{datetime.now():%Y%m%d_%H%M%S}.png'
+        self.logger.info(f'Saving screenshot to {path}')
+        pygame.image.save(self._surface, path)
 
     async def cleanup(self):
         pygame.display.quit()
