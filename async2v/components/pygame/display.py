@@ -10,7 +10,7 @@ from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.mouse import MouseRegion
-from async2v.components.pygame._layout import scale_and_center_preserving_aspect, best_regular_screen_layout
+from async2v.components.pygame._layout import best_regular_screen_layout
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
@@ -103,10 +103,9 @@ class OpenCvDisplay(Display):
         if not self.input.value:
             return []
         frame_surface = _opencv_to_pygame(self.input.value)
-        offset, target_size = scale_and_center_preserving_aspect(frame_surface.get_size(), surface.get_size())
-        target_rect = pygame.Rect(offset, target_size)
+        target_rect = frame_surface.get_rect().fit(surface.get_rect())
         target_surface = surface.subsurface(target_rect)
-        pygame.transform.scale(frame_surface, target_size, target_surface)
+        pygame.transform.scale(frame_surface, target_rect.size, target_surface)
         return [MouseRegion(self.input.value.source, target_rect, (self.input.value.width, self.input.value.height))]
 
 
@@ -148,13 +147,11 @@ class OpenCvMultiDisplay(Display):
         for i, frame in enumerate(self.frames):
             i_x = i % self.__layout[0]
             i_y = int(i / self.__layout[0])
-
             frame_surface = _opencv_to_pygame(frame)
-            offset, target_size = scale_and_center_preserving_aspect(frame_surface.get_size(), element_size)
-            target_rect = pygame.Rect(offset, target_size)
-            target_rect = target_rect.move(i_x * element_size[0], i_y * element_size[1])
+            target_rect = frame_surface.get_rect().fit(pygame.Rect(i_x * element_size[0], i_y * element_size[1],
+                                                                   *element_size))
             target_surface = surface.subsurface(target_rect)
-            pygame.transform.scale(frame_surface, target_size, target_surface)
+            pygame.transform.scale(frame_surface, target_rect.size, target_surface)
             self.after_draw_frame(i, frame, surface, target_surface)
             regions.append(MouseRegion(frame.source, target_rect, (frame.width, frame.height)))
         self.after_draw(surface)
