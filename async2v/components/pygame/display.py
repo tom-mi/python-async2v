@@ -85,8 +85,9 @@ class AuxiliaryOpenCvDisplay(AuxiliaryDisplay):
         self.input = Latest(source)  # type: Latest[Frame]
 
     def draw(self, surface: pygame.Surface) -> None:
-        frame_surface = opencv_to_pygame(self.input.value)
-        pygame.transform.scale(frame_surface, surface.get_size(), surface)
+        if self.input.value:
+            frame_surface = opencv_to_pygame(self.input.value)
+            pygame.transform.scale(frame_surface, surface.get_size(), surface)
 
 
 class OpenCvDisplay(Display):

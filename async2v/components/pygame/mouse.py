@@ -149,7 +149,7 @@ class EventBasedMouseHandler(MouseHandler):
 
     def push_movement(self, position: Tuple[int, int], rel: Tuple[int, int], buttons: Tuple[int, int, int]):
         region = self._get_region(position)
-        buttons = {MouseButton(i + 1): buttons[i] for i in range(3)}
+        buttons = {MouseButton(i + 1): buttons[i] > 0 for i in range(3)}
         if region:
             self.movement.push(MouseMovement(region, position, rel, buttons))
 
