@@ -11,7 +11,7 @@ from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.mouse import MouseRegion
 from async2v.components.pygame._layout import best_regular_screen_layout
-from async2v.components.pygame.util.text import render_hud_text
+from async2v.components.pygame.gui import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
 from async2v.runner import Fps, Duration

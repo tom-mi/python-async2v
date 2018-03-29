@@ -15,7 +15,7 @@ from async2v.components.pygame.keyboard import Action, EventBasedKeyboardHandler
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.mouse import MouseRegion
 from async2v.util import length_normalizer
-from async2v.components.pygame.util.text import render_hud_text
+from async2v.components.pygame.gui import render_hud_text
 from async2v.fields import Latest, Buffer, Output
 
 

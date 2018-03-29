@@ -11,7 +11,7 @@ from async2v.components.pygame.display import Display, AuxiliaryDisplay
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
 
-from async2v.components.pygame.util.text import render_hud_text
+from async2v.components.pygame.gui import render_hud_text
 from async2v.error import ConfigurationError
 from async2v.util import parse_resolution, length_normalizer
 
