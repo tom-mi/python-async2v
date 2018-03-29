@@ -168,4 +168,4 @@ class Button(Label):
 def render_hud_text(surface: pygame.Surface, text: str,
                     font: pygame.freetype.Font = BEDSTEAD, size: int = 20,
                     fgcolor=None, bgcolor=None, position: Tuple[float, float] = (0, 0)):
-    Menu([Label(text, font,size, fgcolor=fgcolor, bgcolor=bgcolor)], position=position).draw(surface)
+    Menu([Label(text, font, size, fgcolor=fgcolor, bgcolor=bgcolor)], position=position).draw(surface)
