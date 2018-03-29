@@ -1,8 +1,8 @@
 import argparse
 import time
-from enum import Enum, auto
 from typing import Tuple, List, NamedTuple
 
+import cv2
 import pygame
 
 from async2v.cli import Configurator, Command
@@ -10,14 +10,12 @@ from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.mouse import MouseRegion
-from async2v.components.pygame.util.display import scale_and_center_preserving_aspect, length_normalizer, \
-    best_regular_screen_layout
-from async2v.components.pygame.util.opencv import opencv_to_pygame
+from async2v.components.pygame.util.display import scale_and_center_preserving_aspect, best_regular_screen_layout
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
 from async2v.runner import Fps, Duration
-from async2v.util import parse_resolution
+from async2v.util import parse_resolution, length_normalizer
 
 
 class Display(SubComponent):
@@ -230,3 +228,8 @@ class OpenCvDebugDisplay(OpenCvMultiDisplay):
 
         render_hud_text(surface, text, self.FONT, font_size, fgcolor=self.FONT_COLOR, bgcolor=self.FONT_BG_COLOR,
                         position=(1, 0))
+
+
+def opencv_to_pygame(frame: Frame) -> pygame.Surface:
+    conversion = cv2.COLOR_GRAY2RGB if frame.channels == 1 else cv2.COLOR_BGR2RGB
+    return pygame.surfarray.make_surface(cv2.transpose(cv2.cvtColor(frame.image, conversion)))

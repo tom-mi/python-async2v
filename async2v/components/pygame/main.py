@@ -10,11 +10,11 @@ from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display, AuxiliaryDisplay
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
-from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, list_resolutions, \
-    DEFAULT_CONFIG, DEFAULT_FULLSCREEN_CONFIG, length_normalizer
+from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, DEFAULT_CONFIG, \
+    DEFAULT_FULLSCREEN_CONFIG
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.error import ConfigurationError
-from async2v.util import parse_resolution
+from async2v.util import parse_resolution, length_normalizer
 
 
 class MainWindowConfigurator(Configurator):
@@ -27,7 +27,10 @@ class MainWindowConfigurator(Configurator):
             pass
 
         def __call__(self, args, app: Application = None):
-            list_resolutions()
+            pygame.display.init()
+            print('Available fullscreen resolutions:')
+            for mode in pygame.display.list_modes():
+                print(f'    {mode[0]}x{mode[1]}')
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Display')

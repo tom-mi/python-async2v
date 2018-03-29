@@ -10,7 +10,7 @@ from async2v.components.pygame.display import Display
 from async2v.components.pygame.keyboard import KeyboardHandler, Action, KeyboardLayout
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.mouse import MouseRegion
-from async2v.components.pygame.util.display import length_normalizer
+from async2v.util import length_normalizer
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.fields import Latest, Output
 
@@ -78,7 +78,7 @@ class Launcher(ApplicationLauncher):
         main_window_config = MainWindow.configurator().config_from_args(args)
         layout = MyKeyboardHandler.configurator().layout_from_args(args)
         keyboard = MyKeyboardHandler(layout)
-        main = MainWindow([display], keyboard, config=main_window_config)
+        main = MainWindow([display], keyboard_handler=keyboard, config=main_window_config)
         app.register(main)
 
 

@@ -1,4 +1,4 @@
-from typing import Tuple, NamedTuple, Optional, List, Callable, Union
+from typing import Tuple, NamedTuple, Optional, List
 
 import logwood
 import pygame
@@ -18,13 +18,6 @@ class DisplayConfiguration(NamedTuple):
 
 DEFAULT_CONFIG = DisplayConfiguration((800, 600), False)
 DEFAULT_FULLSCREEN_CONFIG = DisplayConfiguration(None, True)
-
-
-def list_resolutions():
-    pygame.display.init()
-    print('Available fullscreen resolutions:')
-    for mode in pygame.display.list_modes():
-        print(f'    {mode[0]}x{mode[1]}')
 
 
 def configure_display(config: DisplayConfiguration) -> pygame.Surface:
@@ -102,12 +95,3 @@ def possible_screen_layouts(number_of_frames: int) -> List[Tuple[int, int]]:
                 break
 
     return possible_layouts
-
-
-def length_normalizer(size: Tuple[int, int], reference: int = 600) -> Callable[[Union[float, int]], int]:
-    scale = min(size) / reference
-
-    def normalize_to_int(value):
-        return int(value * scale)
-
-    return normalize_to_int
