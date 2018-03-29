@@ -15,6 +15,10 @@ class MouseButton(Enum):
     RIGHT = 3
     WHEEL_UP = 4
     WHEEL_DOWN = 5
+    BUTTON_6 = 6
+    BUTTON_7 = 7
+    BUTTON_8 = 8
+    BUTTON_9 = 9
 
 
 class MouseEventType(Enum):
@@ -28,6 +32,9 @@ class MouseRegion(NamedTuple):
     name: str
     rect: pygame.Rect
     original_size: Tuple[int, int]
+
+    def move(self, x: int, y: int) -> 'MouseRegion':
+        return MouseRegion(self.name, self.rect.move(x, y), self.original_size)
 
 
 class MouseMovement(NamedTuple):
