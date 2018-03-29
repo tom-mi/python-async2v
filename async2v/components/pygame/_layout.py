@@ -1,30 +1,20 @@
 from typing import Tuple, List
 
 
-def scale_and_center_preserving_aspect(src_resolution: Tuple[int, int],
-                                       target_resolution: Tuple[int, int]) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-    width = min(target_resolution[0], int(target_resolution[1] / src_resolution[1] * src_resolution[0]))
-    height = min(target_resolution[1], int(target_resolution[0] / src_resolution[0] * src_resolution[1]))
-    offset_x = int((target_resolution[0] - width) / 2)
-    offset_y = int((target_resolution[1] - height) / 2)
-    return (offset_x, offset_y), (width, height)
-
-
 def best_regular_screen_layout(src_frames: List[Tuple[int, int]], target: Tuple[int, int]) -> Tuple[int, int]:
     possible_layouts = possible_screen_layouts(len(src_frames))
     best_layout = None
-    best_ratio = 0
+    best_loss = None
     for layout in possible_layouts:
-        sub_frame_target = (int(target[0] / layout[0]), int(target[1] / layout[1]))
-        screen_coverage = 0
+        loss = 0
+        sub_frame_ratio = ((target[0] / layout[0]) / (target[1] / layout[1]))
         for frame in src_frames:
-            _, resized = scale_and_center_preserving_aspect(frame, sub_frame_target)
-            screen_coverage += resized[0] * resized[1]
+            ratio = frame[0] / frame[1]
+            loss += abs(ratio - sub_frame_ratio)
 
-        ratio = screen_coverage / (target[0] * target[1])
-        if ratio > best_ratio:
+        if best_loss is None or loss < best_loss:
             best_layout = layout
-            best_ratio = ratio
+            best_loss = loss
     return best_layout
 
 
