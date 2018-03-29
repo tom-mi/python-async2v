@@ -10,7 +10,7 @@ from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
 from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.mouse import MouseRegion
-from async2v.components.pygame.util.display import scale_and_center_preserving_aspect, best_regular_screen_layout
+from async2v.components.pygame._layout import scale_and_center_preserving_aspect, best_regular_screen_layout
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
@@ -84,7 +84,7 @@ class AuxiliaryOpenCvDisplay(AuxiliaryDisplay):
 
     def draw(self, surface: pygame.Surface) -> None:
         if self.input.value:
-            frame_surface = opencv_to_pygame(self.input.value)
+            frame_surface = _opencv_to_pygame(self.input.value)
             pygame.transform.scale(frame_surface, surface.get_size(), surface)
 
 
@@ -102,7 +102,7 @@ class OpenCvDisplay(Display):
         surface.fill(self.BG_COLOR)
         if not self.input.value:
             return []
-        frame_surface = opencv_to_pygame(self.input.value)
+        frame_surface = _opencv_to_pygame(self.input.value)
         offset, target_size = scale_and_center_preserving_aspect(frame_surface.get_size(), surface.get_size())
         target_rect = pygame.Rect(offset, target_size)
         target_surface = surface.subsurface(target_rect)
@@ -149,7 +149,7 @@ class OpenCvMultiDisplay(Display):
             i_x = i % self.__layout[0]
             i_y = int(i / self.__layout[0])
 
-            frame_surface = opencv_to_pygame(frame)
+            frame_surface = _opencv_to_pygame(frame)
             offset, target_size = scale_and_center_preserving_aspect(frame_surface.get_size(), element_size)
             target_rect = pygame.Rect(offset, target_size)
             target_rect = target_rect.move(i_x * element_size[0], i_y * element_size[1])
@@ -230,6 +230,6 @@ class OpenCvDebugDisplay(OpenCvMultiDisplay):
                         position=(1, 0))
 
 
-def opencv_to_pygame(frame: Frame) -> pygame.Surface:
+def _opencv_to_pygame(frame: Frame) -> pygame.Surface:
     conversion = cv2.COLOR_GRAY2RGB if frame.channels == 1 else cv2.COLOR_BGR2RGB
     return pygame.surfarray.make_surface(cv2.transpose(cv2.cvtColor(frame.image, conversion)))

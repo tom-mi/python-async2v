@@ -1,6 +1,6 @@
 import pytest
 
-from async2v.components.pygame.util import display
+from async2v.components.pygame import _layout
 
 
 @pytest.mark.parametrize('src_resolution,target_resolution,expected', [
@@ -11,7 +11,7 @@ from async2v.components.pygame.util import display
     ((100, 300), (200, 200), ((67, 0), (66, 200))),
 ])
 def test_scale_preserving_aspect(src_resolution, target_resolution, expected):
-    assert display.scale_and_center_preserving_aspect(src_resolution, target_resolution) == expected
+    assert _layout.scale_and_center_preserving_aspect(src_resolution, target_resolution) == expected
 
 
 @pytest.mark.parametrize('number_of_screens, expected_layouts', [
@@ -23,7 +23,7 @@ def test_scale_preserving_aspect(src_resolution, target_resolution, expected):
     (11, [(1, 11), (2, 6), (3, 4), (4, 3), (6, 2), (11, 1)]),
 ])
 def test_possible_screen_layouts(number_of_screens, expected_layouts):
-    assert display.possible_screen_layouts(number_of_screens) == expected_layouts
+    assert _layout.possible_screen_layouts(number_of_screens) == expected_layouts
 
 
 @pytest.mark.parametrize('frames, screen_size, expected', [
@@ -34,4 +34,4 @@ def test_possible_screen_layouts(number_of_screens, expected_layouts):
     ([(100, 50), (300, 100), (300, 150)], (200, 200), (1, 3)),
 ])
 def test_best_regular_screen_layout(frames, screen_size, expected):
-    assert display.best_regular_screen_layout(frames, screen_size) == expected
+    assert _layout.best_regular_screen_layout(frames, screen_size) == expected
