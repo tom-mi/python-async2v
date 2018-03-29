@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
+from typing import List
 
 import cv2
 import numpy as np
+import pygame
 
 from async2v import event
 from async2v.application import Application
@@ -11,14 +13,15 @@ from async2v.components.base import EventDrivenComponent
 from async2v.components.opencv.projector import ProjectorDriver2d
 from async2v.components.opencv.video import VideoSource, Frame
 from async2v.components.pygame.display import OpenCvDebugDisplay, AuxiliaryOpenCvDisplay, OpenCvDisplay
+from async2v.components.pygame.gui import Menu, Button, Label
 from async2v.components.pygame.main import MainWindow
-from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseMovement, MouseEvent, MouseEventType, \
-    MouseButton
+from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseMovement, MouseEvent, MouseButton, MouseRegion
 from async2v.fields import Latest, Output, Buffer
 
 
 class PaintController(EventDrivenComponent):
     COLOR = (0, 255, 0)
+    BG_COLOR = (0, 0, 0)
     THICKNESS = 4
 
     def __init__(self):
@@ -26,9 +29,8 @@ class PaintController(EventDrivenComponent):
         self.output = Output('display')
         self.overlay = Output('overlay')
         self.mouse_movement = Buffer(EventBasedMouseHandler.MOUSE_MOVEMENT, trigger=True)  # type: Buffer[MouseMovement]
-        self.mouse_event = Buffer(EventBasedMouseHandler.MOUSE_EVENT, trigger=True)  # type: Buffer[MouseEvent]
+        self.clear_canvas = Latest('trigger.clear_canvas', trigger=True)
         self.debug = Output(event.OPENCV_FRAME_EVENT)
-        self.reset_calibration = Output(ProjectorDriver2d.RESET_CALIBRATION_TRIGGER)
         self._canvas = None
         self._last_position = None
 
@@ -36,11 +38,8 @@ class PaintController(EventDrivenComponent):
         if not self.source.value:
             return
 
-        for e in self.mouse_event.values:
-            if e.event_type == MouseEventType.DOWN and e.button == MouseButton.RIGHT:
+        if self.clear_canvas.updated:
                 self._canvas = None
-            elif e.event_type == MouseEventType.DOWN and e.button == MouseButton.MIDDLE:
-                self.reset_calibration.push(None)
 
         if self._canvas is None:
             self._canvas = np.zeros(self.source.value.image.shape, dtype='uint8')
@@ -49,6 +48,10 @@ class PaintController(EventDrivenComponent):
             if e.region.name in ['display', 'VideoSource0'] and e.buttons[MouseButton.LEFT]:
                 if self._last_position:
                     cv2.line(self._canvas, self._last_position, e.restored_position, self.COLOR, self.THICKNESS)
+                self._last_position = e.restored_position
+            elif e.region.name in ['display', 'VideoSource0'] and e.buttons[MouseButton.RIGHT]:
+                if self._last_position:
+                    cv2.line(self._canvas, self._last_position, e.restored_position, self.BG_COLOR, self.THICKNESS)
                 self._last_position = e.restored_position
             else:
                 self._last_position = None
@@ -62,6 +65,34 @@ class PaintController(EventDrivenComponent):
         overlay_frame = Frame(self._canvas, 'overlay')
         self.overlay.push(overlay_frame)
         self.debug.push(overlay_frame)
+
+
+class PaintDisplay(OpenCvDisplay):
+
+    def __init__(self, source):
+        super().__init__(source)
+        self.mouse_event = Buffer(EventBasedMouseHandler.MOUSE_EVENT)  # type: Buffer[MouseEvent]
+        self.reset_calibration = Output(ProjectorDriver2d.RESET_CALIBRATION_TRIGGER)
+        self.clear_canvas = Output('trigger.clear_canvas')
+
+        self._menu = Menu([
+            Label('Menu'),
+            Button('Calibrate', self.calibrate),
+            Button('Clear Canvas', self.clear),
+        ], position=(1, 0))
+
+    def calibrate(self):
+        self.reset_calibration.push(None)
+
+    def clear(self):
+        self.clear_canvas.push(None)
+
+    def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
+        regions = super().draw(surface)
+        for e in self.mouse_event.values:
+            self._menu.handle_mouse_event(e)
+        regions += self._menu.draw(surface)
+        return regions
 
 
 class Launcher(ApplicationLauncher):
@@ -81,8 +112,8 @@ class Launcher(ApplicationLauncher):
         mouse_handler = EventBasedMouseHandler()
         paint_controller = PaintController()
         displays = [
-            OpenCvDisplay('display'),
-            OpenCvDisplay('source'),
+            PaintDisplay('display'),
+            PaintDisplay('source'),
             OpenCvDebugDisplay(),
         ]
         main_window = MainWindow(displays, config=main_window_config, auxiliary_display=aux_display,
