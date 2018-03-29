@@ -11,12 +11,12 @@ from async2v.application import Application
 from async2v.cli import ApplicationLauncher, Configurator, Command
 from async2v.components.base import EventDrivenComponent
 from async2v.components.pygame.display import Display
+from async2v.components.pygame.gui import Label, Menu
 from async2v.components.pygame.keyboard import Action, EventBasedKeyboardHandler, KeyboardEvent
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.mouse import MouseRegion
-from async2v.util import length_normalizer
-from async2v.components.pygame.gui import render_hud_text
 from async2v.fields import Latest, Buffer, Output
+from async2v.util import length_normalizer
 
 
 class TextDisplay(Display):
@@ -33,11 +33,11 @@ class TextDisplay(Display):
         if self.text.value is None or self.choices.value is None:
             return []
         surface.fill((0, 0, 0))
-        render_hud_text(surface, self.text.value, size=s(18), fgcolor=self.TEXT_COLOR, position=(0.5, 0.2))
+        entries = [Label(self.text.value, size=s(18), fgcolor=self.TEXT_COLOR)]
         for i, choice in enumerate(self.choices.value):
             color, bgcolor = self.SELECTED_COLORS if choice['selected'] else self.UNSELECTED_COLORS
-            render_hud_text(surface, choice['text'], size=s(20), fgcolor=color, bgcolor=bgcolor,
-                            position=(0.5, 0.4 + i * 0.07))
+            entries.append(Label(choice['text'], size=s(20), fgcolor=color, bgcolor=bgcolor))
+        Menu(entries, position=(0.5, 0.5)).draw(surface)
         return []
 
 
