@@ -1,5 +1,5 @@
 import argparse
-from typing import List, Tuple
+from typing import List, Tuple, NamedTuple, Optional
 from datetime import datetime
 
 import pygame.display
@@ -10,11 +10,26 @@ from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display, AuxiliaryDisplay
 from async2v.components.pygame.keyboard import KeyboardHandler, NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, NoOpMouseHandler
-from async2v.components.pygame.util.display import configure_display, DisplayConfiguration, DEFAULT_CONFIG, \
-    DEFAULT_FULLSCREEN_CONFIG
+
 from async2v.components.pygame.util.text import render_hud_text
 from async2v.error import ConfigurationError
 from async2v.util import parse_resolution, length_normalizer
+
+
+class DisplayConfiguration(NamedTuple):
+    resolution: Optional[Tuple[int, int]]
+    fullscreen: bool
+
+    def __str__(self):
+        if self.fullscreen:
+            mode = 'fullscreen'
+        else:
+            mode = 'window'
+        return f'{self.resolution[0]}x{self.resolution[1]} {mode}'
+
+
+DEFAULT_CONFIG = DisplayConfiguration((800, 600), False)
+DEFAULT_FULLSCREEN_CONFIG = DisplayConfiguration(None, True)
 
 
 class MainWindowConfigurator(Configurator):
@@ -80,7 +95,16 @@ class MainWindow(IteratingComponent, ContainerMixin):
             raise ConfigurationError('Currently, no more than 9 displays are supported')
 
         self._fps = fps  # type: int
-        self._config = config
+        if config.fullscreen:
+            self._display_config = {
+                False: DEFAULT_CONFIG,
+                True: config,
+            }
+        else:
+            self._display_config = {
+                False: config,
+                True: DEFAULT_FULLSCREEN_CONFIG,
+            }
         self._currently_fullscreen = config.fullscreen  # type: bool
 
         self._displays = list(displays)  # type: List[Display]
@@ -110,7 +134,7 @@ class MainWindow(IteratingComponent, ContainerMixin):
 
     async def setup(self):
         pygame.display.init()
-        self._surface = configure_display(self._config)
+        self._configure_display()
         self._configure_aux_display()
         self._regions = [self._main_region()]
 
@@ -160,14 +184,40 @@ class MainWindow(IteratingComponent, ContainerMixin):
         return MouseRegion(ROOT_REGION, self._surface.get_rect(), self._surface.get_size())
 
     def toggle_fullscreen(self):
-        if self._config.fullscreen and self._currently_fullscreen:
-            self._surface = configure_display(DEFAULT_CONFIG)
-        elif not self._config.fullscreen and not self._currently_fullscreen:
-            self._surface = configure_display(DEFAULT_FULLSCREEN_CONFIG)
-        else:
-            self._surface = configure_display(self._config)
         self._currently_fullscreen = not self._currently_fullscreen
+        self._configure_display()
         self._configure_aux_display()
+
+    def _configure_display(self):
+        config = self._display_config[self._currently_fullscreen]
+        resolution = config.resolution
+        if resolution is None:
+            if config.fullscreen:
+                resolution = pygame.display.list_modes()[0]
+            else:
+                resolution = DEFAULT_CONFIG.resolution
+            config = DisplayConfiguration(resolution, config.fullscreen)
+
+        flags = self._get_best_flags_for_config(config)
+        self.logger.info(f'Setting display mode to {config}')
+        self._surface = pygame.display.set_mode(resolution, flags)
+
+    def _get_best_flags_for_config(self, config: DisplayConfiguration):
+        if config.fullscreen:
+            base_flags = pygame.FULLSCREEN
+        else:
+            base_flags = 0
+
+        hw_accelerated_flags = pygame.HWACCEL | pygame.DOUBLEBUF | base_flags
+
+        if pygame.display.mode_ok(config.resolution, hw_accelerated_flags):
+            self.logger.info('Using hardware accelerated display')
+            return hw_accelerated_flags
+        elif pygame.display.mode_ok(config.resolution, base_flags):
+            self.logger.info('Using software display')
+            return base_flags
+        else:
+            raise RuntimeError(f'Display mode {config} is not supported')
 
     def _configure_aux_display(self):
         if self._currently_fullscreen and self._aux_display:
