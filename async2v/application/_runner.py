@@ -5,7 +5,7 @@ from typing import TypeVar, Generic, NamedTuple
 
 import logwood
 
-from async2v.application.registry import ComponentNode
+from async2v.application._registry import ComponentNode
 from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
 from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT, DURATION_EVENT
 from async2v.fields import DoubleBufferedField, AveragingOutput

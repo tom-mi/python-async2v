@@ -1,6 +1,6 @@
 import time
 
-from async2v.application.graph import ApplicationGraph
+from async2v.application._graph import ApplicationGraph
 from async2v.components.base import EventDrivenComponent, BareComponent
 from async2v.fields import Output, Buffer, Latest
 

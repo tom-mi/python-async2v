@@ -14,7 +14,7 @@ from async2v.components.pygame._layout import best_regular_screen_layout
 from async2v.components.pygame.gui import render_hud_text
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
-from async2v.runner import Fps, Duration
+from async2v.application._runner import Fps, Duration
 from async2v.util import parse_resolution, length_normalizer
 
 

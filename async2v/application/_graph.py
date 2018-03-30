@@ -2,8 +2,8 @@ from typing import List, NamedTuple
 
 import graphviz
 
-from async2v.application import Registry
-from async2v.application.registry import ComponentNode, FieldNode
+from . import Registry
+from ._registry import ComponentNode, FieldNode
 from async2v.components.base import IteratingComponent
 from async2v.fields import DoubleBufferedField
 
@@ -30,6 +30,7 @@ class ApplicationGraph:
         self._build()
         self._dot.format = output_format
         self._dot.filename = filename
+        # noinspection PyArgumentList
         self._dot.render()
 
     def source(self):

@@ -7,7 +7,7 @@ import pygame
 from async2v.application import Application
 from async2v.cli import ApplicationLauncher
 from async2v.components.pygame.display import Display
-from async2v.components.pygame.keyboard import KeyboardHandler, Action, KeyboardLayout
+from async2v.components.pygame.keyboard import KeyboardHandler, Action, _KeyboardLayout
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.mouse import MouseRegion
 from async2v.util import length_normalizer
@@ -42,7 +42,7 @@ class MyKeyboardHandler(KeyboardHandler):
         Action('enter', ['RETURN']),
     ]
 
-    def __init__(self, layout: KeyboardLayout):
+    def __init__(self, layout: _KeyboardLayout):
         super().__init__(layout)
         self.state = Output('state')
         self.name = Output('name')

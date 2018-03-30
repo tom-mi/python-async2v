@@ -13,6 +13,9 @@ from async2v.components.pygame.mouse import MouseRegion, MouseEvent, MouseButton
 
 
 class GuiElement:
+    """
+    Abstract base class for gui elements
+    """
 
     @property
     def height(self) -> int:
@@ -39,6 +42,9 @@ class Menu:
         self.padding = padding
 
     def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
+        """
+        Draw the menu on the given pygame surface.
+        """
         element_width = max([e.min_width for e in self.elements])
         width = element_width + 2 * self.padding
         total_height = sum([e.height for e in self.elements]) + (len(self.elements) + 1) * self.padding
@@ -62,6 +68,9 @@ class Menu:
         return [r.move(x, y) for r in regions]
 
     def handle_mouse_event(self, event: MouseEvent):
+        """
+        This method needs to be called for each received mouse event to enable interactive elements like buttons.
+        """
         for element in self.elements:
             element.handle_mouse_event(event)
 

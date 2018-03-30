@@ -35,7 +35,7 @@ class Action:
         return self._description
 
 
-class KeyboardLayout(NamedTuple):
+class _KeyboardLayout(NamedTuple):
     actions_by_key: Dict[int, str]
     actions_by_scancode: Dict[int, str]
     help: List[Tuple[str, str]]
@@ -47,7 +47,7 @@ class KeyboardLayout(NamedTuple):
         return self.actions_by_scancode.get(scancode, None)
 
 
-class KeyboardConfigurator(Configurator):
+class _KeyboardConfigurator(Configurator):
 
     def __init__(self, actions: List[Action]):
         self._actions = actions
@@ -67,7 +67,7 @@ class KeyboardConfigurator(Configurator):
         help = 'Create a keyboard layout file containing the default layout'
         needs_app = False
 
-        def __init__(self, configurator: 'KeyboardConfigurator'):
+        def __init__(self, configurator: '_KeyboardConfigurator'):
             self._configurator = configurator
 
         def add_arguments(self, parser: argparse.ArgumentParser):
@@ -80,7 +80,7 @@ class KeyboardConfigurator(Configurator):
         def __call__(self, args, app: Application = None):
             self._configurator.save_default_layout(args.keyboard_layout, args.verbose_layout)
 
-    def layout_from_args(self, args) -> KeyboardLayout:
+    def layout_from_args(self, args) -> _KeyboardLayout:
         """
         Create a keyboard layout. Use this to construct an instance of the KeyboardHandler subclass this configurator
         was created from.
@@ -99,7 +99,7 @@ class KeyboardConfigurator(Configurator):
         if count > 1:
             raise ConfigurationError(f'Duplicate keyboard action {action}')
 
-    def load_layout(self, path: str) -> KeyboardLayout:
+    def load_layout(self, path: str) -> _KeyboardLayout:
         logger = logwood.get_logger(self.__class__.__name__)
         bindings_by_action = {}
         with open(path) as f:
@@ -125,16 +125,16 @@ class KeyboardConfigurator(Configurator):
                 self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, bindings)
         for action_name in bindings_by_action:
             logger.warning(f'Extra keybindings for unknown action {action_name}')
-        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
+        return _KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
-    def default_layout(self) -> KeyboardLayout:
+    def default_layout(self) -> _KeyboardLayout:
         actions_by_key = {}
         actions_by_scancode = {}
         help_texts = []
         for action in self._actions:
             help_texts.append((action.description or action.name, ', '.join(action.defaults) or '<unassigned>'))
             self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, action.defaults)
-        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
+        return _KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
     def save_default_layout(self, path: str, verbose: bool = False):
         lines = []
@@ -199,13 +199,13 @@ class KeyboardHandler(SubComponent):
     REPEAT_INTERVAL_MS = 50
 
     @classmethod
-    def configurator(cls) -> KeyboardConfigurator:
+    def configurator(cls) -> _KeyboardConfigurator:
         """
         Returns a KeyboardConfigurator, which should be registered via add_configurator in the application launcher.
         """
-        return KeyboardConfigurator(actions=cls.ACTIONS)
+        return _KeyboardConfigurator(actions=cls.ACTIONS)
 
-    def __init__(self, layout: KeyboardLayout):
+    def __init__(self, layout: _KeyboardLayout):
         self._layout = layout
         self._pressed = {}
         self._capture = False  # type: bool
@@ -321,7 +321,7 @@ class EventBasedKeyboardHandler(KeyboardHandler):
     CAPTURE_TEXT_EVENT = 'async2v.keyboard.text'
     KEYBOARD_EVENT = 'async2v.keyboard.action'
 
-    def __init__(self, layout: KeyboardLayout):
+    def __init__(self, layout: _KeyboardLayout):
         super().__init__(layout)
         self.keyboard = Output(self.KEYBOARD_EVENT)
         self.text = Output(self.KEYBOARD_EVENT)
@@ -344,9 +344,9 @@ class EventBasedKeyboardHandler(KeyboardHandler):
         self.text.push(CaptureTextEvent(capture_id, text, complete=True))
 
 
-class NoOpKeyboardHandler(KeyboardHandler):
+class _NoOpKeyboardHandler(KeyboardHandler):
     def __init__(self):
-        super().__init__(KeyboardLayout({}, {}, []))
+        super().__init__(_KeyboardLayout({}, {}, []))
 
     def key_down(self, action: str) -> None:
         pass

@@ -8,8 +8,8 @@ import logwood
 import sys
 
 from async2v.application import Application
-from async2v.application.graph import ApplicationGraph
-import async2v.application.graph
+from async2v.application._graph import ApplicationGraph
+import async2v.application._graph
 
 
 class Command:
@@ -43,7 +43,7 @@ class Configurator:
         raise NotImplementedError
 
 
-class DefaultConfigurator(Configurator):
+class _DefaultConfigurator(Configurator):
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         pass
@@ -81,7 +81,7 @@ class DefaultConfigurator(Configurator):
                                help='Dot source output filename. '
                                     'The source will be rendered to FILENAME.EXT according to output format.')
             group.add_argument('-f', '--format', metavar='FORMAT', default='pdf',
-                               choices=async2v.application.graph.get_formats(),
+                               choices=async2v.application._graph.get_formats(),
                                help='Output format')
 
         def __call__(self, args, app: Application = None):
@@ -95,7 +95,7 @@ class DefaultConfigurator(Configurator):
 class ApplicationLauncher:
 
     def __init__(self):
-        self._configurators = [DefaultConfigurator()]  # type: List[Configurator]
+        self._configurators = [_DefaultConfigurator()]  # type: List[Configurator]
         self._commands = {}  # type: Dict[str, Command]
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('-v', '--verbose', action='count', default=0)

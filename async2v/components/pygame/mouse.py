@@ -161,7 +161,7 @@ class EventBasedMouseHandler(MouseHandler):
             self.movement.push(MouseMovement(region, position, rel, buttons))
 
 
-class NoOpMouseHandler(MouseHandler):
+class _NoOpMouseHandler(MouseHandler):
 
     def push_regions(self, regions: [MouseRegion]):
         pass

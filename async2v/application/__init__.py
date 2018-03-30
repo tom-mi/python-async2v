@@ -8,8 +8,8 @@ import logwood
 
 from async2v.components.base import Component, IteratingComponent
 from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT
-from async2v.application.registry import Registry
-from async2v.runner import create_component_runner, BaseComponentRunner
+from ._registry import Registry
+from ._runner import create_component_runner, BaseComponentRunner
 
 DRAIN_TIMEOUT_SECONDS = 5
 DRAIN_QUIET_PERIOD_SECONDS = 1
