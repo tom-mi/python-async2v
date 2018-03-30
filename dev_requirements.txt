@@ -1,2 +1,4 @@
 pytest
 Sphinx
+sphinx-autodoc-typehints
+better-apidoc

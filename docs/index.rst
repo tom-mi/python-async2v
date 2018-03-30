@@ -10,7 +10,8 @@ Welcome to async2v's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: async2v
+   api/async2v
+
 
 Indices and tables
 ==================

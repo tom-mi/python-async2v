@@ -8,7 +8,7 @@
 __pycache__
 
 /docs/_build
-/docs/async2v*
+/docs/api
 
 env
 
