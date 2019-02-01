@@ -9,6 +9,7 @@ setup(
         'graphviz',
         'logwood',
     ],
+    include_package_data=True,
     extras_require={
 
     },
