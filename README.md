@@ -25,8 +25,8 @@ fixed, understandable way to a directed graph.
 
 ### Modeling unpredictable input and output
 
-Components are triggered either by a timer or by incoming events. Either way there is usually no way to predict how
-many events have arrived at the various inputs during the last processing step (except for very simple components).
+Components are triggered either by a timer or by incoming events. Either way it is hard to predict how
+many events will arrive at the various inputs between two processing steps (except for very simple components).
 This fact is taken into account by providing inputs that allow to handle asynchronous input events in a convenient way:
 
 * A `Latest` input field will only retain the last received event.
