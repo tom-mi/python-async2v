@@ -11,6 +11,7 @@ setup(
     ],
     include_package_data=True,
     extras_require={
-
+        'pygame': ['pygame'],
+        'opencv': ['opencv-python'],
     },
 )
