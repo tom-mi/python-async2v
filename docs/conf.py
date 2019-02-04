@@ -156,3 +156,5 @@ texinfo_documents = [
 
 autodoc_member_order = 'bysource'
 add_module_names = False
+default_role = 'any'
+autodoc_default_flags = ['members', 'show-inheritance']

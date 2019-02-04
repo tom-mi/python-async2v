@@ -17,6 +17,13 @@ TASK_SHUTDOWN_TIMEOUT_SECONDS = 5
 
 
 class Application(Thread):
+    """
+    This class manages the lifecycle of an async2v application at construction and runtime.
+
+    Usually you want to use an `ApplicationLauncher` instead of instantiating an `Application` instance by hand.
+
+    .. automethod:: start()
+    """
 
     def __init__(self):
         super().__init__()
@@ -32,11 +39,18 @@ class Application(Thread):
         self._main_loop_stopped = asyncio.Event(loop=self._loop)
         self._main_loop_task = None  # type: asyncio.Task
 
-    def stop(self):
-        self._queue.put(Event(SHUTDOWN_EVENT))
-        self.join()
-
     def register(self, *components: Component) -> None:
+        """
+        Register one or more components to the application.
+
+        * When called before the application has been started, the given components are added immediately.
+          They will be started upon application startup.
+        * When called on a running application, a registration request is put on the main event queue and will be
+          processed asynchronously within the main event loop. The components will be started immediately after the
+          registration is complete.
+
+        :param components:
+        """
         if self.is_alive():
             for component in components:
                 self._queue.put(Event(REGISTER_EVENT, component))
@@ -45,6 +59,16 @@ class Application(Thread):
                 self._do_register(component)
 
     def deregister(self, *components: Component) -> None:
+        """
+        Deregister one or more components from the application.
+
+        * When called before the application has been started, the given components are removed immediately.
+        * When called on a running application, a deregistration request is put on the event queue and will be
+          processed asynchronously within the main event loop. The components will be stopped before the
+          deregistration.
+
+        :param components:
+        """
         if self.is_alive():
             for component in components:
                 self._queue.put(Event(DEREGISTER_EVENT, component))
@@ -52,7 +76,18 @@ class Application(Thread):
             for component in components:
                 self._do_deregister(component)
 
+    def stop(self) -> None:
+        """
+        Stop the application.
+
+        The application is stopped by putting a shutdown request on the event queue. This method waits for the
+        underlying thread to finish, hence can be considered as synchronous.
+        """
+        self._queue.put(Event(SHUTDOWN_EVENT))
+        self.join()
+
     def run(self):
+        """"""
         asyncio.set_event_loop(self._loop)
 
         self._internal_tasks = [

@@ -32,6 +32,15 @@ class _BaseComponent:
 
 
 class Component(_BaseComponent):
+    """
+    Abstract base class for all components.
+
+    For building components, use one of the available subclasses:
+
+    * `IteratingComponent`
+    * `EventDrivenComponent`
+    * `BareComponent`
+    """
 
     async def setup(self):
         pass

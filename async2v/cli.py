@@ -1,3 +1,13 @@
+"""
+Build a command-line interface for your application.
+
+Subclass `ApplicationLauncher` and override the required methods to configure your components and run your
+application without having to write boilerplate.
+
+This gives you the predefined commands :code:`run`, :code:`graph` and possibly additional commands provided by
+component configurators. In addition, you can also define additional commands by subclassing `Command` and add them
+to your application by registering a subclass of `Configurator`.
+"""
 import argparse
 import argcomplete
 
@@ -8,39 +18,79 @@ import logwood
 import sys
 
 from async2v.application import Application
+# noinspection PyProtectedMember
 from async2v.application._graph import ApplicationGraph
+# noinspection PyProtectedMember
 import async2v.application._graph
 
 
 class Command:
+    """
+    Abstract base class to define subcommands for the command line interface.
+
+    .. automethod:: __call__
+    """
 
     @property
     def name(self) -> str:
+        """
+        Name of the subcommand
+        """
         raise NotImplementedError
 
     @property
     def help(self) -> str:
+        """
+        Help text used in the command line interface
+        """
         raise NotImplementedError
 
     @property
     def needs_app(self) -> bool:
+        """
+        Return :code:`True` if your command requires a fully configured `Application` instance.
+        """
         raise NotImplementedError
 
-    def add_arguments(self, parser: argparse.ArgumentParser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """
+        Override to register commandline arguments for this command
+
+        :param parser:
+        """
         raise NotImplementedError
 
-    def __call__(self, args, app: Application = None):
+    def __call__(self, args, app: Application = None) -> None:
+        """
+        Override to define the command logic.
+
+        :param args: Arguments parsed by argparse
+        :param app: Holds an `Application` instance if `needs_app` is :code:`True`, otherwise :code:`None`
+        """
         raise NotImplementedError
 
 
 class Configurator:
+    """
+    Abstract base class to define reusable command line arguments and configuration parsers.
+
+    A configurator can optionally provide one or more `Command` s.
+    """
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
-        raise NotImplementedError
+        """
+        Override to register additional parameters for the application.
+
+        :param parser:
+        """
+        pass
 
     @property
     def commands(self) -> List[Command]:
-        raise NotImplementedError
+        """
+        Override to register additional subcommands.
+        """
+        return []
 
 
 class _DefaultConfigurator(Configurator):
@@ -85,7 +135,7 @@ class _DefaultConfigurator(Configurator):
                                help='Output format')
 
         def __call__(self, args, app: Application = None):
-            graph = ApplicationGraph(app._registry)
+            graph = ApplicationGraph(app.registry)
             if args.source:
                 print(graph.source())
             else:
@@ -93,6 +143,18 @@ class _DefaultConfigurator(Configurator):
 
 
 class ApplicationLauncher:
+    """
+    Main entry point for a async2v commandline application.
+
+    * To register components, override `register_application_components` and call :code:`app.register(...)`.
+    * Some components have predefined configurators that can be hooked into the launcher:
+
+      * Override :code:`__init__` and call :code:`self.add_configurator(...)` to register them.
+      * Construct the configuration with :code:`MyConfigurator.config_from_args(...)` in
+        `register_application_components`.
+
+    * Override `add_app_arguments` to register argparse arguments for your application.
+    """
 
     def __init__(self):
         self._configurators = [_DefaultConfigurator()]  # type: List[Configurator]
@@ -106,27 +168,38 @@ class ApplicationLauncher:
     def add_configurator(self, configurator: Configurator):
         """
         Add a configurator to be evaluated by argparse.
+
         This method needs to be called from the constructor to be effective.
+
+        :param configurator: Configurator provided by a configurable `Component`
         """
         self._configurators.append(configurator)
 
     def add_app_arguments(self, parser: argparse.ArgumentParser):
         """
         Override this method to specify arguments that are needed to construct the application, i.e. when
-        register_application_components is called.
+        `register_application_components` is called.
+
+        :param parser:
         """
         pass
 
     def register_application_components(self, args, app: Application):
         """
-        Register your components to the application here, using the parsed comandline args
+        This method must be overridden.
+
+        Use :code:`app.register(...)` to register your components, using the parsed commandline args.
+
+        :param args: Arguments parsed by argparse
+        :param app:
         """
         raise NotImplementedError
 
     def main(self, args=None):
         """
-        Parse the given (or passed to the program, if not specified) commandline arguments and run the appropriate
-        command.
+        Launch the commandline interface.
+
+        :param args: Optionally pass arguments. If not given, the arguments passed to the program will be parsed.
         """
         self._configure_parser()
         argcomplete.autocomplete(self.parser)
