@@ -2,8 +2,10 @@
 # PYTHON_ARGCOMPLETE_OK
 
 import asyncio
+import os.path
 
 import cv2
+import cv2.data
 import numpy as np
 
 from async2v.application import Application
@@ -64,7 +66,7 @@ class TerminatorFilter(EventDrivenComponent):
 
 
 class FaceDetector(EventDrivenComponent):
-    FACE_CASCADE = '/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml'
+    FACE_CASCADE = os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_default.xml')
 
     def __init__(self):
         self.source = Latest('source', trigger=True)  # type: Latest[Frame]
