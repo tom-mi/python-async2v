@@ -6,11 +6,14 @@
 .idea
 .pytest_cache
 __pycache__
+.tox
+/build
 
 /docs/_build
 /docs/api
 
 env
+.python-version
 
 # Default graphs created by async2v
 graph
