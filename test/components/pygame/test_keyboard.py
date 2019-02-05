@@ -178,6 +178,8 @@ def test_keyboard_handler_text_capture():
 
 
 def test_event_based_keyboard_handler():
+    pygame.display.init()  # required as pygame.key.set_repeat() is called in tested code
+
     configurator = MyEventBasedKeyboardHandler.configurator()
     layout = configurator.default_layout()
     handler = MyEventBasedKeyboardHandler(layout)
