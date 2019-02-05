@@ -145,9 +145,7 @@ def test_keyboard_handler():
     assert handler.log == ['forward_down', 'forward_up', 'backward_down', 'backward_up']
 
 
-def test_keyboard_handler_text_capture():
-    pygame.display.init()  # required as pygame.key.set_repeat() is called in tested code
-
+def test_keyboard_handler_text_capture(pygame_video):
     configurator = MyKeyboardHandler.configurator()
     layout = configurator.default_layout()
     handler = MyKeyboardHandler(layout)
@@ -177,9 +175,7 @@ def test_keyboard_handler_text_capture():
                            'enter_up']
 
 
-def test_event_based_keyboard_handler():
-    pygame.display.init()  # required as pygame.key.set_repeat() is called in tested code
-
+def test_event_based_keyboard_handler(pygame_video):
     configurator = MyEventBasedKeyboardHandler.configurator()
     layout = configurator.default_layout()
     handler = MyEventBasedKeyboardHandler(layout)
