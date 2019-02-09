@@ -6,6 +6,10 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/stable/config
 
+import os.path
+
+root = os.path.dirname(__file__)
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -38,6 +42,7 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',
@@ -75,7 +80,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -152,9 +157,27 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+
+def run_apidoc(_):
+    import better_apidoc
+    better_apidoc.main([
+        'better-apidoc',
+        '--no-toc',
+        '--templates', os.path.join(root, '_templates'),
+        '--force',
+        '--separate',
+        '--output-dir', os.path.join(root, 'api'),
+        os.path.join(root, '..', 'async2v'),
+    ])
+
+
 # -- Extension configuration -------------------------------------------------
 
 autodoc_member_order = 'bysource'
 add_module_names = False
 default_role = 'any'
 autodoc_default_flags = ['members', 'show-inheritance']
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
