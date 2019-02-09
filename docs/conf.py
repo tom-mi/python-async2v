@@ -11,7 +11,7 @@ import os.path
 root = os.path.dirname(__file__)
 
 project = 'async2v'
-copyright = '2018, Thomas Reifenberger'
+copyright = '2019, Thomas Reifenberger'
 author = 'Thomas Reifenberger'
 
 # The short X.Y version
@@ -22,6 +22,7 @@ release = ''
 extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',
 ]
@@ -37,6 +38,11 @@ pygments_style = 'sphinx'
 html_theme = 'default'
 html_static_path = ['_static']
 htmlhelp_basename = 'async2vdoc'
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'pygame': ('http://www.pygame.org/docs', None),
+}
 
 
 def run_apidoc(_):
