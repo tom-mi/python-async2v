@@ -25,6 +25,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx_autodoc_typehints',
     'sphinx.ext.coverage',
+    'sphinxcontrib.asyncio',
 ]
 
 templates_path = ['_templates']
@@ -38,6 +39,8 @@ pygments_style = 'sphinx'
 html_theme = 'default'
 html_static_path = ['_static']
 htmlhelp_basename = 'async2vdoc'
+
+nitpicky = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
@@ -62,6 +65,7 @@ autodoc_member_order = 'bysource'
 add_module_names = False
 default_role = 'any'
 autodoc_default_flags = ['members', 'show-inheritance']
+autoclass_content = 'both'
 
 
 def setup(app):

@@ -26,7 +26,7 @@ import async2v.application._graph
 
 class Command:
     """
-    Abstract base class to define subcommands for the command line interface.
+    Abstract base class to define subcommands for the command line interface
 
     .. automethod:: __call__
     """
@@ -72,9 +72,9 @@ class Command:
 
 class Configurator:
     """
-    Abstract base class to define reusable command line arguments and configuration parsers.
+    Abstract base class to define reusable command line arguments and configuration parsers
 
-    A configurator can optionally provide one or more `Command` s.
+    A configurator can optionally provide one or more subcommands by returning a list of `Command` instances.
     """
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:

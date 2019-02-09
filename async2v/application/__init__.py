@@ -18,11 +18,13 @@ TASK_SHUTDOWN_TIMEOUT_SECONDS = 5
 
 class Application(Thread):
     """
-    This class manages the lifecycle of an async2v application at construction and runtime.
+    Manages the lifecycle of an async2v application at construction and runtime
 
     Usually you want to use an `ApplicationLauncher` instead of instantiating an `Application` instance by hand.
 
-    .. automethod:: start()
+    .. method:: start()
+
+        Start the application.
     """
 
     def __init__(self):
@@ -81,13 +83,15 @@ class Application(Thread):
         Stop the application.
 
         The application is stopped by putting a shutdown request on the event queue. This method waits for the
-        underlying thread to finish, hence can be considered as synchronous.
+        underlying thread to finish, hence can be deemed synchronous.
         """
         self._queue.put(Event(SHUTDOWN_EVENT))
         self.join()
 
-    def run(self):
-        """"""
+    def run(self) -> None:
+        """
+        Implementation of the application thread. Don't call this method directly, use :py:func:`start` instead.
+        """
         asyncio.set_event_loop(self._loop)
 
         self._internal_tasks = [

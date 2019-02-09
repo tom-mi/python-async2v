@@ -33,6 +33,11 @@ class GuiElement:
 
 
 class Menu:
+    """
+    Container for gui elements
+
+    Handles positioning and drawing of a vertical list of gui elements, such as :py:class:`Label` or :py:class:`Button`.
+    """
 
     def __init__(self, elements: List[GuiElement], position: Tuple[float, float] = (0, 0), bgcolor=(0, 0, 0, 128),
                  padding: float = 4):

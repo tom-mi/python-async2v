@@ -33,7 +33,7 @@ class _BaseComponent:
 
 class Component(_BaseComponent):
     """
-    Abstract base class for all components.
+    Abstract base class for all components
 
     For building components, use one of the available subclasses:
 
@@ -42,42 +42,147 @@ class Component(_BaseComponent):
     * `BareComponent`
     """
 
-    async def setup(self):
-        pass
+    async def setup(self) -> None:
+        """
+        Can be overridden to perform setup before processing starts.
 
-    async def cleanup(self):
-        pass
+        This method is run after registration and app startup, i.e. all inputs & outputs are wired and can be used.
+        """
+
+    async def cleanup(self) -> None:
+        """
+        Can be overridden to perform cleanup before the component is shut down.
+
+        This method is run before unregistering the component. The inputs & outputs are still wired and can be used,
+        but other components might not be reacting to those events any more as they have already been shut down.
+        """
 
 
 class IteratingComponent(Component):
+    """
+    Runs at a fixed frame rate
+
+    The iterating component is triggered by the framework regularly. It tries to run the `process` method in a way
+    that the target frame rate is achieved. However, as other factors like runtime of other components are
+    involved and the available processing time is limited, you should not rely on an exact frame rate.
+
+    .. autocomethod:: setup
+    .. autocomethod:: cleanup
+    """
 
     @property
     def target_fps(self) -> int:
+        """
+        Must be overridden to specify the target processing rate in Hz.
+
+        This method is only called once during startup of the component. It is not possible to change the
+        target frame rate during runtime.
+        """
         raise NotImplementedError
 
-    async def process(self):
+    async def process(self) -> None:
+        """
+        Must be overridden to implement the component's core logic.
+
+        This method is called by the framework regularly at approximately the rate returned by `target_fps`.
+
+        It is never called before :py:meth:`setup` or after :py:meth:`cleanup` has been called for this component.
+        """
         raise NotImplementedError
 
 
 class EventDrivenComponent(Component):
+    """
+    Runs when trigger events are received
 
-    async def process(self):
+    An `EventDrivenComponent` needs to have at least one trigger field (a `DoubleBufferedField` like `Latest` or
+    `Buffer` constructed with ``trigger=True``). When one of the trigger fields receives an event, the component is
+    marked for execution. Its `process` method will be invoked when the component runner is given control by the asyncio
+    scheduler. That does not happen immediately - further events (also on different fields) can arrive between the
+    trigger and the actual invocation of the `process` method. Those events don't lead to additional invocations.
+
+    The guarantees by the framework are:
+
+    * if this method has been called, at least one event has arrived on any of the trigger fields
+    * if any of the trigger fields receives an event, a method invocation is scheduled and performed as soon as
+      possible (if not already scheduled)
+
+    .. autocomethod:: setup
+    .. autocomethod:: cleanup
+    """
+
+    async def process(self) -> None:
+        """
+        Must be overridden to implement the component's core logic.
+
+        It is never called before :py:meth:`setup` or after :py:meth:`cleanup` has been called for this component.
+        """
         raise NotImplementedError
 
 
 class BareComponent(Component):
-    pass
+    """
+    Unmanaged component
+
+    This component's processing steps are not managed by the framework. Therefore, it cannot have any
+    `DoubleBufferedField` fields, as those require the framework to know when the processing happens.
+    The only builtin input field supported in this component is `InputQueue`.
+
+    Use this component for special cases like reading from external event sources or running all of the components logic
+    in a separate thread.
+
+    .. autocomethod:: setup
+    .. autocomethod:: cleanup
+    """
 
 
 class SubComponent(_BaseComponent):
-    pass
+    """
+    Dependent component
+
+    A `SubComponent` is unmanaged with respect to processing, but it needs to be embedded into another component.
+    It can have its own input & output fields. Processing needs to be triggered by the containing component.
+    The containing component needs to extend from the `ContainerMixin` and register its supcomonents.
+
+    It is intended to support the composite pattern to design complex components.
+
+    Example usage:
+
+        >>> class SampleSubComponent(SubComponent):
+        >>>
+        >>>     def __init__(self):
+        >>>         self.input = Buffer('in', trigger=True)
+        >>>         self.output = Output('out')
+        >>>
+        >>>     def do_something(self):
+        >>>         for value in self.input.values:
+        >>>             self.output.push(value)
+        >>>
+        >>>
+        >>> class SampleComponent(EventDrivenComponent, ContainerMixin):
+        >>>
+        >>>     def __init__(self, sample: SampleSubComponent):
+        >>>         super().__init__([sample])
+        >>>
+        >>>     async def process(self):
+        >>>         for sub_component in self.sub_components:
+        >>>             sub_component.do_something()
+    """
 
 
 class ContainerMixin:
+    """
+    Mixin allowing components to have subcomponents.
+
+    See `SubComponent` for more information.
+    """
 
     def __init__(self, sub_components: List[SubComponent]):
         self._sub_components = sub_components
 
     @property
     def sub_components(self) -> List[SubComponent]:
+        """
+        :return: All registered subcomponents of this component
+        """
         return self._sub_components
