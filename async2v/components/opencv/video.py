@@ -1,7 +1,8 @@
 import argparse
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, NamedTuple, List, Union
+from dataclasses import dataclass
+from typing import Tuple, List, Union
 
 import sys
 
@@ -18,39 +19,91 @@ except ImportError as e:
     raise e
 
 try:
-    import numpy as np
+    import numpy
 except ImportError as e:
-    print('Optional module cv2 not present. Please install opencv.')
+    print('Optional module numpy not present. Please install numpy.')
     raise e
 
 
-class Frame(NamedTuple):
-    image: np.ndarray
+@dataclass(frozen=True)
+class Frame:
+    """
+    Container for a OpenCV video frame
+
+    Next to the image, this class includes some convenience methods and the name of the video source.
+    """
+
+    image: numpy.ndarray
+    """
+    :type: numpy.ndarray
+
+    OpenCV image
+    """
+
     source: str
+    """
+    :type: str
+
+    Name of the source. For frames emitted by builtin components, this is the `component id <Component.id>`.
+    """
 
     @property
     def width(self) -> int:
+        """
+        Width of `image`
+        """
         return self.image.shape[1]
 
     @property
     def height(self) -> int:
+        """
+        Height of `image`
+        """
         return self.image.shape[0]
 
     @property
     def channels(self) -> int:
+        """
+        Number of channels of `image`
+        """
         try:
             return self.image.shape[2]
         except IndexError:
             return 1
 
 
-class VideoSourceConfig(NamedTuple):
+@dataclass
+class VideoSourceConfig:
+    """
+    Configuration for the `VideoSource` component
+    """
+
     path: Union[str, int]
+    """
+    :type: Union[str, int]
+
+    Path to video file (`str`) or camera index (`int`)
+    """
+
     fps: int
+    """
+    :type: int
+
+    Frames per second
+    """
+
     resolution: Tuple[int, int] = None
+    """
+    :type: Tuple[int, int]
+
+    Resolution (width, height)
+    """
 
 
 class VideoSourceConfigurator(Configurator):
+    """
+    Configurator for the `VideoSource` component
+    """
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group('Video Source',
@@ -69,6 +122,9 @@ class VideoSourceConfigurator(Configurator):
 
     @staticmethod
     def config_from_args(args) -> VideoSourceConfig:
+        """
+        Get configuration from argparse output
+        """
         if args.source_camera is not None:
             path = args.source_camera
         elif args.source_file is not None:
@@ -95,12 +151,26 @@ class VideoSourceConfigurator(Configurator):
 
 
 class VideoSource(IteratingComponent):
+    """
+    OpenCV video source component
+
+    Reads from a video file or a camera at a given framerate.
+    The frames are pushed to the provided event key wrapped in `Frame` objects.
+    Supports full command line configuration via `VideoSourceConfigurator`.
+    """
 
     @staticmethod
     def configurator() -> VideoSourceConfigurator:
+        """
+        Convenience method to create a matching configurator
+        """
         return VideoSourceConfigurator()
 
     def __init__(self, config: VideoSourceConfig, key: str = 'source'):
+        """
+        :param config: Can be generated via `VideoSourceConfigurator`
+        :param key: Event key of video output
+        """
         self._path = config.path
         self._target_fps = config.fps
         self.output = Output(key)
@@ -108,7 +178,7 @@ class VideoSource(IteratingComponent):
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._resolution = config.resolution
         self._resolution_verified = False
-        self._capture = None  # type: cv2.VideoCapture
+        self._capture: cv2.VideoCapture = None
 
     @property
     def target_fps(self) -> int:
@@ -155,10 +225,19 @@ class VideoSource(IteratingComponent):
 
 
 class SimpleDisplaySink(EventDrivenComponent):
+    """
+    Simple OpenCV-based display
+
+    Uses ``cv2.imshow`` to display frames. When the display has focus, pressing ``ESCAPE`` triggers shutdown of the
+    application.
+    """
     ESCAPE = 27
 
     def __init__(self, input_key: str):
-        self.input = Latest(input_key, trigger=True)  # type: Latest[Frame]
+        """
+        :param input_key: Event key of the input. Needs to provide `Frame` events to display.
+        """
+        self.input: Latest[Frame] = Latest(input_key, trigger=True)
 
     async def process(self):
         cv2.imshow(self.id, self.input.value.image)

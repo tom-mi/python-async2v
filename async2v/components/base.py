@@ -24,6 +24,9 @@ class _BaseComponent:
 
     @property
     def id(self) -> str:
+        """
+        Human readable component id, created from class name and ascending index (e.g. ``VideoSource0``).
+        """
         return self.__class__.__name__ + str(self._numeric_id)
 
     @property
@@ -40,6 +43,8 @@ class Component(_BaseComponent):
     * `IteratingComponent`
     * `EventDrivenComponent`
     * `BareComponent`
+
+    .. autoattribute:: id
     """
 
     async def setup(self) -> None:

@@ -41,10 +41,18 @@ html_static_path = ['_static']
 htmlhelp_basename = 'async2vdoc'
 
 nitpicky = True
+nitpick_ignore = [
+    ('py:class', 'Union'),  # FIXME
+    ('py:class', 'Tuple'),  # FIXME
+    ('py:class', 'typing.Tuple'),  # FIXME
+    ('py:class', 'T'),  # generic type parameter
+    ('py:class', 'async2v.components.base._BaseComponent')  # intended to be non-documented
+]
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'pygame': ('http://www.pygame.org/docs', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy', None),
 }
 
 
@@ -65,7 +73,14 @@ autodoc_member_order = 'bysource'
 add_module_names = False
 default_role = 'any'
 autodoc_default_flags = ['members', 'show-inheritance']
+autodoc_default_options = {
+    'members': None,
+    'show-inheritance': None,
+    #    'undoc-members': None,
+}
 autoclass_content = 'both'
+autodoc_inherit_docstrings = False
+
 
 
 def setup(app):

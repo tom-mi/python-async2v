@@ -1,9 +1,19 @@
 import argparse
 import time
-from typing import List, NamedTuple
+from dataclasses import dataclass
+from typing import List
 
-import cv2
-import numpy as np
+try:
+    import cv2
+except ImportError as e:
+    print('Optional module cv2 not present. Please install opencv.')
+    raise e
+
+try:
+    import numpy
+except ImportError as e:
+    print('Optional module numpy not present. Please install numpy.')
+    raise e
 
 from async2v import event
 from async2v.cli import Configurator, Command
@@ -12,11 +22,24 @@ from async2v.components.opencv.video import Frame
 from async2v.fields import Output, Latest
 
 
-class ProjectorDriver2dConfiguration(NamedTuple):
+@dataclass
+class ProjectorDriver2dConfiguration:
+    """
+    Configuration for the `ProjectorDriver2d` component
+    """
+
     debug: bool = False
+    """
+    :type: bool
+
+    Emit debug frames during projector calibration
+    """
 
 
 class ProjectorDriver2dConfigurator(Configurator):
+    """
+    Configurator for the `ProjectorDriver2d` component
+    """
 
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument('--debug-projector-calibration', action='store_true',
@@ -28,22 +51,42 @@ class ProjectorDriver2dConfigurator(Configurator):
 
     @staticmethod
     def config_from_args(args):
+        """
+        Get configuration from argparse output
+        """
         return ProjectorDriver2dConfiguration(args.debug_projector_calibration)
 
 
 class ProjectorDriver2d(EventDrivenComponent, ContainerMixin):
+    """
+    Draw overlays into the real world with a projector
 
+    This component automatically calibrates a projector that projects into the field of view of a camera.
+    Overlays can then be drawn in coordinates of the camera image. Calibration is performed automatically on start.
+    It can also be triggered later by sending an arbitrary event to the key stored in `RESET_CALIBRATION_TRIGGER`.
+    """
+
+    #: Event key for reset command input. Events on this key trigger a new projector calibration.
     RESET_CALIBRATION_TRIGGER = 'async2v.projector.trigger.reset_calibration'
 
     @staticmethod
     def configurator() -> ProjectorDriver2dConfigurator:
+        """
+        Convenience method to create a matching configurator
+        """
         return ProjectorDriver2dConfigurator()
 
     def __init__(self, source: str, overlay: str, projector: str = 'projector',
                  config: ProjectorDriver2dConfiguration = ProjectorDriver2dConfiguration()):
+        """
+        :param source: Key of the video stream input. Needs to provide events with `Frame <async2v.components.opencv.Frame>` payload.
+        :param overlay: Key of the overlay input. Needs to provide events with `Frame <async2v.components.opencv.Frame>` payload.
+        :param projector: Key of projector output. `Frame <async2v.components.opencv.Frame>` events are pushed to this output.
+        :param config: Can be generated via `ProjectorDriver2dConfigurator`
+        """
         self._calibrator = _ProjectorCalibrator2d(source, projector, config.debug)
         super().__init__([self._calibrator])
-        self.overlay = Latest(overlay, trigger=True)  # type: Latest[Frame]
+        self.overlay: Latest[Frame] = Latest(overlay, trigger=True)
         self.projector = Output(projector)
         self.reset = Latest(self.RESET_CALIBRATION_TRIGGER, trigger=True)
         self._calibration_started = False
@@ -91,10 +134,10 @@ class _ProjectorCalibrator2d(SubComponent):
     ]
 
     def __init__(self, source, projector, debug):
-        self._background = cv2.createBackgroundSubtractorMOG2()  # type: cv2.BackgroundSubtractor
+        self._background: cv2.BackgroundSubtractor = cv2.createBackgroundSubtractorMOG2()
         self._calibration_cycle_i = 0
         self._initialize_pattern()
-        self.source = Latest(source, trigger=True)  # type: Latest[Frame]
+        self.source: Latest[Frame] = Latest(source, trigger=True)
         self.projector = Output(projector)
         if debug:
             self.debug = Output(event.OPENCV_FRAME_EVENT)
@@ -126,7 +169,7 @@ class _ProjectorCalibrator2d(SubComponent):
             pattern = self._draw_pattern()
             self._push_pattern_to_projector(pattern)
         elif action == 'clear_pattern':
-            pattern = np.zeros(tuple(reversed(self.CANVAS_SIZE)), dtype=np.uint8)
+            pattern = numpy.zeros(tuple(reversed(self.CANVAS_SIZE)), dtype=numpy.uint8)
             cv2.rectangle(pattern, (0, 0), self.CANVAS_SIZE, 128, self.CALIBRATION_PATTERN_GRID_SIZE)
             self._push_pattern_to_projector(pattern)
         elif action == 'calibrate_pattern':
@@ -140,7 +183,7 @@ class _ProjectorCalibrator2d(SubComponent):
             if self.debug:
                 output = self.source.value.image.copy()
                 blobs = blob_detector.detect(mask)
-                output = cv2.drawKeypoints(output, blobs, np.array([]), (0, 0, 255),
+                output = cv2.drawKeypoints(output, blobs, numpy.array([]), (0, 0, 255),
                                            cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                 cv2.drawChessboardCorners(output, self._calibration_pattern_size, centers, found)
                 self.debug.push(Frame(mask, 'projector.calibration.mask'))
@@ -151,7 +194,7 @@ class _ProjectorCalibrator2d(SubComponent):
             raise ValueError(f'Unknown action {action}')
 
     def _draw_pattern(self):
-        overlay = np.zeros(tuple(reversed(self.CANVAS_SIZE)), dtype=np.uint8)
+        overlay = numpy.zeros(tuple(reversed(self.CANVAS_SIZE)), dtype=numpy.uint8)
         cv2.rectangle(overlay, (0, 0), self.CANVAS_SIZE, 128, self.CALIBRATION_PATTERN_GRID_SIZE)
         r = int(self.CALIBRATION_PATTERN_GRID_SIZE * 0.2)
         for pos in self._calibration_pattern:
@@ -162,7 +205,7 @@ class _ProjectorCalibrator2d(SubComponent):
         x0 = int(self.CANVAS_SIZE[0] * 0.25)
         y0 = int(self.CANVAS_SIZE[1] * 0.25)
         a0 = self.CALIBRATION_PATTERN_GRID_SIZE
-        a1 = np.sqrt(3) / 2 * a0
+        a1 = numpy.sqrt(3) / 2 * a0
         n_x = int(self.CANVAS_SIZE[0] * 0.25 / a0) * 2 + 1
         n_y = int(self.CANVAS_SIZE[1] * 0.25 / a1) * 2 + 1
 
@@ -201,7 +244,7 @@ class _ProjectorCalibrator2d(SubComponent):
         return cv2.SimpleBlobDetector_create(params)
 
     def _finish_calibration(self, detected_centers):
-        canvas_centers = np.array(self._calibration_pattern, dtype='float32')
+        canvas_centers = numpy.array(self._calibration_pattern, dtype='float32')
         self._transformation_matrix, _ = cv2.findHomography(detected_centers, canvas_centers)
         self._last_calibrated = time.time()
         self._calibration_cycle_i = 0

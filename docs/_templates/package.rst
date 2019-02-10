@@ -7,8 +7,6 @@
 .. automodule:: {{ fullname }}
     {% if members -%}
     :members: {{ members|join(", ") }}
-    :undoc-members:
-    :show-inheritance:
     {%- endif %}
 
 {% if submodules %}
