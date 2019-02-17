@@ -79,9 +79,9 @@ class ProjectorDriver2d(EventDrivenComponent, ContainerMixin):
     def __init__(self, source: str, overlay: str, projector: str = 'projector',
                  config: ProjectorDriver2dConfiguration = ProjectorDriver2dConfiguration()):
         """
-        :param source: Key of the video stream input. Needs to provide events with `Frame <async2v.components.opencv.Frame>` payload.
-        :param overlay: Key of the overlay input. Needs to provide events with `Frame <async2v.components.opencv.Frame>` payload.
-        :param projector: Key of projector output. `Frame <async2v.components.opencv.Frame>` events are pushed to this output.
+        :param source: Key of the video stream input. Needs to provide events with `Frame` payload.
+        :param overlay: Key of the overlay input. Needs to provide events with `Frame` payload.
+        :param projector: Key of projector output. `Frame` events are pushed to this output.
         :param config: Can be generated via `ProjectorDriver2dConfigurator`
         """
         self._calibrator = _ProjectorCalibrator2d(source, projector, config.debug)

@@ -215,7 +215,7 @@ class OpenCvMultiDisplay(Display):
         return '#50A0A0', '#EEFEFE'
 
     @property
-    def frames(self) -> [Frame]:
+    def frames(self) -> List[Frame]:
         """
         Override this property to return a list of OpenCV frames to be rendered.
 
