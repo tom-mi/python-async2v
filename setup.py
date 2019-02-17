@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'argcomplete',
+        'dataclasses; python_version < "3.7"',
         'graphviz',
         'logwood',
     ],
