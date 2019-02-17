@@ -20,6 +20,9 @@ class _BaseComponent:
         return __instance
 
     def shutdown(self):
+        """
+        Trigger graceful shutdown of the application.
+        """
         self.__shutdown.push(None)
 
     @property
@@ -51,6 +54,7 @@ class Component(_BaseComponent):
 
     .. autoattribute:: id
     .. autoattribute:: graph_colors
+    .. automethod:: shutdown
     """
 
     async def setup(self) -> None:

@@ -130,6 +130,7 @@ class _DefaultConfigurator(Configurator):
             group.add_argument('-o', '--output', metavar='FILENAME', default='graph',
                                help='Dot source output filename. '
                                     'The source will be rendered to FILENAME.EXT according to output format.')
+            # noinspection PyProtectedMember
             group.add_argument('-f', '--format', metavar='FORMAT', default='pdf',
                                choices=async2v.application._graph.get_formats(),
                                help='Output format')
@@ -163,7 +164,8 @@ class ApplicationLauncher:
         self.parser.add_argument('-v', '--verbose', action='count', default=0)
         self.parser.add_argument('-q', '--quiet', action='count', default=0)
 
-        self.subparsers = self.parser.add_subparsers(help='command', dest='command')  # type: argparse._SubParsersAction
+        # noinspection PyProtectedMember
+        self.subparsers: argparse._SubParsersAction = self.parser.add_subparsers(help='command', dest='command')
 
     def add_configurator(self, configurator: Configurator):
         """

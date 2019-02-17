@@ -404,6 +404,15 @@ class AveragingOutput(Output[T], Generic[T]):
         self._interval = interval
 
     def push(self, value: T, timestamp: float = None):
+        """
+        Push a new output value
+
+        Depending on the configuration if this field, not all pushed values cause new events to be emitted.
+
+        :param value: Payload
+        :param timestamp: Will be set to current time if not given. Set this field if you want to propagate the
+            timestamp of a source event.
+        """
         self._buffer.append(value)
         if ((self._count and len(self._buffer) >= self._count) or
                 (self._interval and time.time() - self._last_pushed > self._interval)):

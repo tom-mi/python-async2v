@@ -42,6 +42,7 @@ htmlhelp_basename = 'async2vdoc'
 
 nitpicky = True
 nitpick_ignore = [
+    ('py:class', 'Dict'),  # FIXME
     ('py:class', 'List'),  # FIXME
     ('py:class', 'Union'),  # FIXME
     ('py:class', 'Tuple'),  # FIXME

@@ -3,11 +3,53 @@ from typing import TypeVar, Generic
 import time
 
 REGISTER_EVENT = 'async2v.register'
+"""
+:type: str
+
+Internal event key. Components to be registered are published as payload on this key.
+
+Don't use directly - To register a component, use the `register` method on the `Application`.
+"""
+
 DEREGISTER_EVENT = 'async2v.deregister'
+"""
+:type: str
+
+Internal event key. Components to be de-registered are published as payload on this key.
+
+Don't use directly - To de-register a component, use the `deregister` method on the `Application`.
+"""
+
 SHUTDOWN_EVENT = 'async2v.shutdown'
+"""
+:type: str
+
+Internal event key used to trigger application shutdown.
+
+Don't use directly - To shutdown, call `shutdown` from within a component.
+"""
+
 OPENCV_FRAME_EVENT = 'async2v.opencv.frame'
+"""
+:type: str
+
+Event key to collect debug frames. Push events containing `Frame` payload to this key to have them displayed in the
+`OpenCvDebugDisplay`.
+"""
+
 DURATION_EVENT = 'async2v.duration'
+"""
+:type: str
+
+Metric events containing `Duration` payload are pushed on this event key by the framework.
+"""
+
 FPS_EVENT = 'async2v.fps'
+"""
+:type: str
+
+Metric events containing `Fps` payload are pushed on this event key by the framework.
+"""
 
 T = TypeVar('T')
 
