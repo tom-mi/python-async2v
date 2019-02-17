@@ -1,6 +1,36 @@
+"""
+Pygame main window
+
+To use any of the pygame components & utilities, a pygame `MainWindow` component needs to be part of the application.
+It is the central container for displays, keyboard & mouse handling.
+
+It comes with a configurator to set the desired resolution and initial fullscreen mode via command line.
+
+Example for integrating the main window into the application:
+
+::
+
+    class Launcher(ApplicationLauncher):
+
+        def __init__(self):
+            super().__init__()
+            self.add_configurator(MyKeyboardHandler.configurator())
+            self.add_configurator(MainWindow.configurator())
+
+        def register_application_components(self, args, app: Application):
+            displays = [
+                # add displays here
+                OpenCvDebugDisplay(),
+            ]
+            main_window_config = MainWindow.configurator().config_from_args(args)
+            main = MainWindow(displays, config=main_window_config)
+            # add more components here
+            app.register(main)
+"""
 import argparse
-from typing import List, Tuple, NamedTuple, Optional
+from dataclasses import dataclass
 from datetime import datetime
+from typing import List, Tuple, Optional
 
 import pygame.display
 
@@ -8,15 +38,18 @@ from async2v.application import Application
 from async2v.cli import Configurator, Command
 from async2v.components.base import IteratingComponent, ContainerMixin
 from async2v.components.pygame.display import Display, AuxiliaryDisplay
+from async2v.components.pygame.gui import render_hud_text
 from async2v.components.pygame.keyboard import KeyboardHandler, _NoOpKeyboardHandler
 from async2v.components.pygame.mouse import MouseRegion, ROOT_REGION, MouseHandler, _NoOpMouseHandler
-
-from async2v.components.pygame.gui import render_hud_text
 from async2v.error import ConfigurationError
 from async2v.util import parse_resolution, length_normalizer
 
 
-class _DisplayConfiguration(NamedTuple):
+@dataclass
+class DisplayConfiguration:
+    """
+    Display configuration for `MainWindow`
+    """
     resolution: Optional[Tuple[int, int]]
     fullscreen: bool
 
@@ -28,11 +61,14 @@ class _DisplayConfiguration(NamedTuple):
         return f'{self.resolution[0]}x{self.resolution[1]} {mode}'
 
 
-_DEFAULT_CONFIG = _DisplayConfiguration((800, 600), False)
-_DEFAULT_FULLSCREEN_CONFIG = _DisplayConfiguration(None, True)
+_DEFAULT_CONFIG = DisplayConfiguration((800, 600), False)
+_DEFAULT_FULLSCREEN_CONFIG = DisplayConfiguration(None, True)
 
 
-class _MainWindowConfigurator(Configurator):
+class MainWindowConfigurator(Configurator):
+    """
+    Configurator for `MainWindow`
+    """
     class ListResolutionCommand(Command):
         name = 'list-resolutions'
         help = 'List supported fullscreen resolutions'
@@ -57,28 +93,54 @@ class _MainWindowConfigurator(Configurator):
         return [self.ListResolutionCommand()]
 
     @staticmethod
-    def config_from_args(args) -> _DisplayConfiguration:
+    def config_from_args(args) -> DisplayConfiguration:
+        """
+        Get configuration from argparse output
+        """
         if args.resolution:
             resolution = parse_resolution(args.resolution)
         else:
             resolution = None
-        return _DisplayConfiguration(resolution, args.fullscreen)
+        return DisplayConfiguration(resolution, args.fullscreen)
 
 
 class MainWindow(IteratingComponent, ContainerMixin):
+    """
+    Pygame main window component
+
+    Holds up to 9 pygame `Display` subcomponents. Optionally a `KeyboardHandler`, `MouseHandler` and an
+    `AuxiliaryDisplay` can be specified.
+
+    All display & input logic should be in those subcomponents, usually there is no need to subclass `MainWindow`.
+
+    The `MainWindow` comes with a few predefined key bindings:
+        * ``F1`` to toggle on screen help
+        * ``F2`` .. ``F10`` for switching displays
+        * ``F11`` to toggle fullscreen mode
+        * ``F12`` to take a screenshot
+        * ``ESCAPE`` to shutdown the application
+    """
     HELP_FONT_COLOR = (255, 255, 255)
     HELP_BG_COLOR = (0, 0, 0, 120)
 
     @classmethod
-    def configurator(cls) -> _MainWindowConfigurator:
+    def configurator(cls) -> MainWindowConfigurator:
         """
-        Returns a MainWindowConfigurator, which should be registered via add_configurator in the application launcher.
+        Convenience method to create a matching configurator
         """
-        return _MainWindowConfigurator()
+        return MainWindowConfigurator()
 
     def __init__(self, displays: List[Display], auxiliary_display: AuxiliaryDisplay = None,
                  keyboard_handler: KeyboardHandler = None, mouse_handler: MouseHandler = None,
-                 config: _DisplayConfiguration = None, fps: int = 60, ):
+                 config: DisplayConfiguration = None, fps: int = 60, ):
+        """
+        :param displays: List of up to 9 displays
+        :param auxiliary_display:
+        :param keyboard_handler:
+        :param mouse_handler:
+        :param config: Can be generated via `MainWindowConfigurator`
+        :param fps: Target frame rate (frames per second)
+        """
         if keyboard_handler is None:
             keyboard_handler = _NoOpKeyboardHandler()
         if mouse_handler is None:
@@ -196,13 +258,13 @@ class MainWindow(IteratingComponent, ContainerMixin):
                 resolution = pygame.display.list_modes()[0]
             else:
                 resolution = _DEFAULT_CONFIG.resolution
-            config = _DisplayConfiguration(resolution, config.fullscreen)
+            config = DisplayConfiguration(resolution, config.fullscreen)
 
         flags = self._get_best_flags_for_config(config)
         self.logger.info(f'Setting display mode to {config}')
         self._surface = pygame.display.set_mode(resolution, flags)
 
-    def _get_best_flags_for_config(self, config: _DisplayConfiguration):
+    def _get_best_flags_for_config(self, config: DisplayConfiguration):
         if config.fullscreen:
             base_flags = pygame.FULLSCREEN
         else:

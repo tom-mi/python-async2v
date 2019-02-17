@@ -31,6 +31,11 @@ class _BaseComponent:
 
     @property
     def graph_colors(self) -> Tuple[str, str]:
+        """
+        Override to provide custom colors for the application graph that can be generated with the ``graph`` command.
+
+        :return: (background color, foreground color) as hex RGB string (e.g. ``#808080``)
+        """
         return '#808080', '#FEFEFE'
 
 
@@ -45,6 +50,7 @@ class Component(_BaseComponent):
     * `BareComponent`
 
     .. autoattribute:: id
+    .. autoattribute:: graph_colors
     """
 
     async def setup(self) -> None:

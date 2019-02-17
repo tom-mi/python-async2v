@@ -1,44 +1,17 @@
 import asyncio
 import queue
 import time
-from typing import TypeVar, Generic, NamedTuple
+from typing import TypeVar, Generic
 
 import logwood
 
+from async2v.application.metric import Fps, Duration
 from async2v.application._registry import ComponentNode
 from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
 from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT, DURATION_EVENT
 from async2v.fields import DoubleBufferedField, AveragingOutput
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
-
-
-class Fps(NamedTuple):
-    component_id: str
-    current: float
-    target: int
-
-    def __add__(self, other: 'Fps'):
-        if self.component_id != other.component_id:
-            raise ValueError('Cannot add fps of different components')
-        return Fps(self.component_id, self.current + other.current, self.target)
-
-    def __truediv__(self, other: int):
-        return Fps(self.component_id, self.current / other, self.target)
-
-
-class Duration(NamedTuple):
-    component_id: str
-    duration_seconds: float
-
-    def __add__(self, other: 'Duration'):
-        if self.component_id != other.component_id:
-            raise ValueError('Cannot add durations of different components')
-        return Duration(self.component_id, self.duration_seconds + other.duration_seconds)
-
-    def __truediv__(self, other: int):
-        return Duration(self.component_id, self.duration_seconds / other)
-
 
 METRIC_AVERAGING_INTERVAL_SECONDS = 1
 

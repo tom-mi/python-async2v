@@ -1,34 +1,61 @@
 import argparse
 import time
-from typing import Tuple, List, NamedTuple
+from dataclasses import dataclass
+from typing import Tuple, List
 
 import cv2
 import pygame
 
+from async2v.application.metric import Fps, Duration
 from async2v.cli import Configurator, Command
 from async2v.components.base import SubComponent
 from async2v.components.opencv.video import Frame
-from async2v.components.pygame.fonts import BEDSTEAD
-from async2v.components.pygame.mouse import MouseRegion
 from async2v.components.pygame._layout import best_regular_screen_layout
+from async2v.components.pygame.fonts import BEDSTEAD
 from async2v.components.pygame.gui import render_hud_text
+from async2v.components.pygame.mouse import MouseRegion
 from async2v.event import OPENCV_FRAME_EVENT, FPS_EVENT, DURATION_EVENT
 from async2v.fields import Latest, LatestBy
-from async2v.application._runner import Fps, Duration
 from async2v.util import parse_resolution, length_normalizer
 
 
 class Display(SubComponent):
+    """
+    Abstract pygame display
+
+    The pygame `MainWindow` supports multiple displays. The currently selected display is rendered on the main display
+    area. An optional `AuxiliaryDisplay` can be rendered next to the main display area.
+    """
 
     def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
+        """
+        This method needs to overridden to draw the content of the display to the given surface.
+
+        :param surface: Pygame surface that can be used completely to draw the content of this display
+        :returns: List of mouse regions relative to the given surface. For those regions, mouse events will be emitted
+            by the containing `MainWindow`. See `mouse` for details.
+        """
         raise NotImplementedError
 
 
-class AuxiliaryDisplayConfig(NamedTuple):
+@dataclass
+class AuxiliaryDisplayConfig:
+    """
+    Configuration for the `AuxiliaryDisplay` component
+    """
+
     resolution: Tuple[int, int]
+    """
+    :type: Tuple[int, int]
+    
+    Resolution (width, height)
+    """
 
 
 class AuxiliaryDisplayConfigurator(Configurator):
+    """
+    Configuration for the `AuxiliaryDisplay` component
+    """
 
     # TODO allow more flexible & generic configuration
     def add_app_arguments(self, parser: argparse.ArgumentParser) -> None:
@@ -47,6 +74,9 @@ class AuxiliaryDisplayConfigurator(Configurator):
 
     @staticmethod
     def config_from_args(args):
+        """
+        Get configuration from argparse output
+        """
         if args.aux_resolution:
             resolution = parse_resolution(args.aux_resolution)
         else:
@@ -55,30 +85,70 @@ class AuxiliaryDisplayConfigurator(Configurator):
 
 
 class AuxiliaryDisplay(SubComponent):
+    """
+    Abstract auxiliary display sub-component
+
+    This pygame-based auxiliary display can be added the pygame `MainWindow`. It will be rendered next to the main
+    display on the right. In fullscreen mode, the main window then spans the whole virtual display. The physical
+    displays need to be configured accordingly. For this to work, the auxiliary display needs to be provided the
+    resolution of the physical auxliary display. The resolution of the main display can then be determined
+    automatically, as it takes the remaining space of the virtual display.
+
+    ::
+
+        +-----------------+-------------+
+        |                 |             |
+        |                 | aux display |
+        |     main        |             |
+        |     display     +-------------+
+        |                 |
+        |                 |
+        +-----------------+
+    """
 
     @staticmethod
     def configurator() -> AuxiliaryDisplayConfigurator:
+        """
+        Convenience method to create a matching configurator
+        """
         return AuxiliaryDisplayConfigurator()
 
     def __init__(self, config: AuxiliaryDisplayConfig):
+        """
+        :param config: Can be generated via `AuxiliaryDisplayConfigurator`
+        """
         self._resolution = config.resolution
 
     @property
     def resolution(self) -> Tuple[int, int]:
+        """
+        Resolution (width, height) of auxiliary display
+        """
         return self._resolution
 
     def draw(self, surface: pygame.Surface) -> None:
+        """
+        This method needs to overridden to draw the content of the display to the given surface.
+
+        :param surface:
+        """
         raise NotImplementedError
 
 
 class AuxiliaryOpenCvDisplay(AuxiliaryDisplay):
     """
     Draw OpenCV frames to the auxiliary display surface.
-    Note that the frames are scaled without preserving the aspect ratio. This makes it easy to draw on the whole
+
+    See `AuxiliaryDisplay` for more information.
+
+    Frames are scaled without preserving the aspect ratio. This makes it easy to draw on the whole
     available surface without knowing the target aspect ratio.
     """
 
     def __init__(self, config: AuxiliaryDisplayConfig, source):
+        """
+        :param config: Can be generated via `AuxiliaryDisplayConfigurator`
+        """
         super().__init__(config)
         self.input = Latest(source)  # type: Latest[Frame]
 
@@ -89,10 +159,21 @@ class AuxiliaryOpenCvDisplay(AuxiliaryDisplay):
 
 
 class OpenCvDisplay(Display):
+    """
+    Pygame display drawing OpenCV frames
+
+    Scales OpenCV frames preserving the aspect ratio and draws them on the given surface.
+
+    This display returns a `MouseRegion` overlaying the displayed frame with the input frame source as
+    name and the size of the input frame as `original_size`.
+    """
     BG_COLOR = (0, 0, 0)
 
     def __init__(self, source):
-        self.input = Latest(source)  # type: Latest[Frame]
+        """
+        :param source: Key of input event. Needs to provide `Frame` events.
+        """
+        self.input: Latest[Frame] = Latest(source)
 
     @property
     def graph_colors(self) -> Tuple[str, str]:
@@ -110,6 +191,16 @@ class OpenCvDisplay(Display):
 
 
 class OpenCvMultiDisplay(Display):
+    """
+    Pygame display drawing OpenCV frames from multiple sources
+
+    Scales OpenCV frames preserving the aspect ratio and draws them into a tiled layout.
+    If the number of tiles changes, if the screen size changes or at latest after 60 seconds, the layout is reevaluated
+    and optimized for the best (largest) tile size. All tiles within a layout have the same size.
+
+    For each tile, this display returns a `MouseRegion` overlaying the displayed frame with the input frame source as
+    name and the size of the input frame as `original_size`.
+    """
     REEVALUATION_INTERVAL_SECONDS = 60
     BG_COLOR = (0, 0, 0)
 
@@ -127,6 +218,7 @@ class OpenCvMultiDisplay(Display):
     def frames(self) -> [Frame]:
         """
         Override this property to return a list of OpenCV frames to be rendered.
+
         This list should be stable during one iteration (e.g. directly calculated from the input fields).
         """
         raise NotImplementedError
@@ -161,7 +253,8 @@ class OpenCvMultiDisplay(Display):
                          frame_surface: pygame.Surface) -> None:
         """
         Override to draw extra information on a single frame
-        :param frame_index:
+
+        :param frame_index: Index of the frame in the list returned by `frames`
         :param frame: Frame that has been rendered
         :param surface: pygame.Surface of the whole display
         :param frame_surface: pygame.Surface the frame has been rendered to
@@ -170,6 +263,7 @@ class OpenCvMultiDisplay(Display):
     def after_draw(self, surface: pygame.Surface) -> None:
         """
         Override to draw extra information on the whole display
+
         :param surface: pygame.Surface of the whole display
         """
 
@@ -183,15 +277,25 @@ class OpenCvMultiDisplay(Display):
 
 
 class OpenCvDebugDisplay(OpenCvMultiDisplay):
+    """
+    Zero configuration pygame debug display
+
+    Renders the latest frames pushed to the key `OPENCV_FRAME_EVENT` by frame source: For each source, a separate tile
+    is created. The builtin `VideoSource` automatically pushes to the debug event key.
+
+    For each tile, this display returns a `MouseRegion` overlaying the displayed frame with the input frame source as
+    name and the size of the input frame as `original_size`.
+    """
+
     FONT_COLOR = (255, 255, 255)
     FONT_BG_COLOR = (0, 0, 0, 90)
     FONT = BEDSTEAD
 
     def __init__(self):
         super().__init__()
-        self.input = LatestBy(OPENCV_FRAME_EVENT, lambda frame: frame.source)  # type: LatestBy[str, Frame]
-        self.fps = LatestBy(FPS_EVENT, lambda fps: fps.component_id)  # type: LatestBy[str, Fps]
-        self.duration = LatestBy(DURATION_EVENT, lambda d: d.component_id)  # type: LatestBy[str, Duration]
+        self.input: LatestBy[str, Frame] = LatestBy(OPENCV_FRAME_EVENT, lambda frame: frame.source)
+        self.fps: LatestBy[str, Fps] = LatestBy(FPS_EVENT, lambda fps: fps.component_id)
+        self.duration: LatestBy[str, Duration] = LatestBy(DURATION_EVENT, lambda d: d.component_id)
 
     @property
     def frames(self) -> [Frame]:

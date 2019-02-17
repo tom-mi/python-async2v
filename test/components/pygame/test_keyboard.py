@@ -3,7 +3,7 @@ import textwrap
 
 import pygame
 import pytest
-from async2v.components.pygame.keyboard import Action, _KeyboardConfigurator, KeyboardHandler, _KeyboardLayout, \
+from async2v.components.pygame.keyboard import Action, KeyboardConfigurator, KeyboardHandler, KeyboardLayout, \
     EventBasedKeyboardHandler, KeyboardEvent, CaptureTextEvent
 from async2v.error import ConfigurationError
 from async2v.event import Event
@@ -11,7 +11,7 @@ from async2v.event import Event
 
 @pytest.fixture
 def config():
-    return _KeyboardConfigurator([
+    return KeyboardConfigurator([
         Action('forward', defaults=['w'], description='Move forward'),
         Action('backward', defaults=['DOWN', 'sc_39']),
         Action('left', defaults=[]),
@@ -39,7 +39,7 @@ def layout_file(tmpdir):
     (0, 40, None),
     (pygame.K_s, 0, None),
 ])
-def test_default_layout(config: _KeyboardConfigurator, key, scancode, expected_action):
+def test_default_layout(config: KeyboardConfigurator, key, scancode, expected_action):
     layout = config.default_layout()
 
     assert layout.action_by_key_or_scancode(key, scancode) == expected_action
@@ -52,13 +52,13 @@ def test_default_layout(config: _KeyboardConfigurator, key, scancode, expected_a
     (pygame.K_KP8, 0, 'forward'),
     (0, 38, 'left'),
 ])
-def test_load_layout(config: _KeyboardConfigurator, layout_file, key, scancode, expected_action):
+def test_load_layout(config: KeyboardConfigurator, layout_file, key, scancode, expected_action):
     layout = config.load_layout(layout_file)
 
     assert layout.action_by_key_or_scancode(key, scancode) == expected_action
 
 
-def test_default_layout_help(config: _KeyboardConfigurator):
+def test_default_layout_help(config: KeyboardConfigurator):
     layout = config.default_layout()
 
     assert layout.help == [
@@ -68,7 +68,7 @@ def test_default_layout_help(config: _KeyboardConfigurator):
     ]
 
 
-def test_load_layout_help(config: _KeyboardConfigurator, layout_file):
+def test_load_layout_help(config: KeyboardConfigurator, layout_file):
     layout = config.load_layout(layout_file)
 
     assert layout.help == [
@@ -81,7 +81,7 @@ def test_load_layout_help(config: _KeyboardConfigurator, layout_file):
 @pytest.mark.parametrize('binding', ['A', 'K_a', 'sc_', 'sc_1x'])
 def test_default_layout_fails_to_parse_for_invalid_bindings(binding):
     with pytest.raises(ConfigurationError):
-        _KeyboardConfigurator([Action('foo', defaults=[binding])]).default_layout()
+        KeyboardConfigurator([Action('foo', defaults=[binding])]).default_layout()
 
 
 @pytest.mark.parametrize('actions', [
@@ -92,15 +92,15 @@ def test_default_layout_fails_to_parse_for_invalid_bindings(binding):
 ])
 def test_default_layout_fails_for_duplicate_mappings(actions):
     with pytest.raises(ConfigurationError):
-        _KeyboardConfigurator(actions).default_layout()
+        KeyboardConfigurator(actions).default_layout()
 
 
 def test_fails_on_duplicate_action():
     with pytest.raises(ConfigurationError):
-        _KeyboardConfigurator([Action('foo'), Action('foo')])
+        KeyboardConfigurator([Action('foo'), Action('foo')])
 
 
-def test_save_default_layout(config: _KeyboardConfigurator, tmpdir):
+def test_save_default_layout(config: KeyboardConfigurator, tmpdir):
     target = tmpdir.join('keyboard_layout.conf')
     config.save_default_layout(str(target))
 
@@ -113,7 +113,7 @@ def test_save_default_layout(config: _KeyboardConfigurator, tmpdir):
     assert target.read() == expected_content
 
 
-def test_save_default_layout_verbose(config: _KeyboardConfigurator, tmpdir):
+def test_save_default_layout_verbose(config: KeyboardConfigurator, tmpdir):
     target = tmpdir.join('keyboard_layout.conf')
     config.save_default_layout(str(target), verbose=True)
 
@@ -218,7 +218,7 @@ class MyKeyboardHandler(KeyboardHandler):
         Action('enter', ['RETURN']),
     ]
 
-    def __init__(self, layout: _KeyboardLayout):
+    def __init__(self, layout: KeyboardLayout):
         super().__init__(layout)
         self.log = []
 

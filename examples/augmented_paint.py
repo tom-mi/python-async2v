@@ -71,7 +71,7 @@ class PaintDisplay(OpenCvDisplay):
 
     def __init__(self, source):
         super().__init__(source)
-        self.mouse_event = Buffer(EventBasedMouseHandler.MOUSE_EVENT)  # type: Buffer[MouseEvent]
+        self.mouse_event: Buffer[MouseEvent] = Buffer(EventBasedMouseHandler.MOUSE_EVENT)
         self.reset_calibration = Output(ProjectorDriver2d.RESET_CALIBRATION_TRIGGER)
         self.clear_canvas = Output('trigger.clear_canvas')
 
@@ -89,8 +89,7 @@ class PaintDisplay(OpenCvDisplay):
 
     def draw(self, surface: pygame.Surface) -> List[MouseRegion]:
         regions = super().draw(surface)
-        for e in self.mouse_event.values:
-            self._menu.handle_mouse_event(e)
+        self._menu.handle_mouse_events(self.mouse_event.values)
         regions += self._menu.draw(surface)
         return regions
 
@@ -98,27 +97,16 @@ class PaintDisplay(OpenCvDisplay):
 class Launcher(ApplicationLauncher):
     def __init__(self):
         super().__init__()
-        self.add_configurator(VideoSource.configurator())
-        self.add_configurator(AuxiliaryOpenCvDisplay.configurator())
         self.add_configurator(MainWindow.configurator())
-        self.add_configurator(ProjectorDriver2d.configurator())
 
     def register_application_components(self, args, app: Application):
-        source = VideoSource(VideoSource.configurator().config_from_args(args))
-        aux_config = AuxiliaryOpenCvDisplay.configurator().config_from_args(args)
-        aux_display = AuxiliaryOpenCvDisplay(aux_config, 'projector')
         main_window_config = MainWindow.configurator().config_from_args(args)
-        driver = ProjectorDriver2d('source', 'overlay', config=ProjectorDriver2d.configurator().config_from_args(args))
         mouse_handler = EventBasedMouseHandler()
-        paint_controller = PaintController()
         displays = [
-            PaintDisplay('display'),
-            PaintDisplay('source'),
             OpenCvDebugDisplay(),
         ]
-        main_window = MainWindow(displays, config=main_window_config, auxiliary_display=aux_display,
-                                 mouse_handler=mouse_handler)
-        app.register(source, paint_controller, driver, main_window)
+        main_window = MainWindow(displays, config=main_window_config, mouse_handler=mouse_handler)
+        app.register(main_window)
 
 
 if __name__ == '__main__':

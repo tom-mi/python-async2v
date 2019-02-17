@@ -1,7 +1,46 @@
+"""
+Pygame based keyboard input
+
+This module provides an abstraction from the concrete key bindings by defining a keyboard handler based on actions.
+Those actions can be mapped to arbitrary keys. A default mapping can be specified.
+This module also comes with ready-to-use configurator & command line interface to perform common keyboard layout
+management tasks like generating a default layout file or configuring the desired layout via command line switch.
+
+Two base classes are available that can be overridden to provide an application with keyboard support,
+`KeyboardHandler` and `EventBasedKeyboardHandler`.
+
+Example for integrating a keyboard handler into an application:
+
+::
+
+    class MyKeyboardHandler(EventBasedKeyboardHandler):
+        ACTIONS = [
+            Action('run', ['UP', 'w']),
+            Action('jump', ['SPACE']),
+        ]
+
+    class Launcher(ApplicationLauncher):
+
+        def __init__(self):
+            super().__init__()
+            self.add_configurator(MyKeyboardHandler.configurator())
+            self.add_configurator(MainWindow.configurator())
+
+        def register_application_components(self, args, app: Application):
+            # ...
+            main_window_config = MainWindow.configurator().config_from_args(args)
+            layout = MyKeyboardHandler.configurator().layout_from_args(args)
+            keyboard = MyKeyboardHandler(layout)
+            # ...
+            main = MainWindow([display], keyboard_handler=keyboard, config=main_window_config)
+            app.register(main)
+"""
+
 import argparse
 import collections
 import os.path
-from typing import List, NamedTuple, Dict, Tuple
+from dataclasses import dataclass
+from typing import List, Dict, Tuple
 
 import logwood
 import pygame
@@ -14,8 +53,16 @@ from async2v.fields import Output, Latest
 
 
 class Action:
+    """
+    Keyboard action
+    """
 
     def __init__(self, name: str, defaults: List[str] = None, description: str = None):
+        """
+        :param name: Name of the keyboard action (must not contain whitespace)
+        :param defaults: Default keybindings for this action
+        :param description:
+        """
         if len(name.split()) != 1 or name.strip() != name:
             raise ConfigurationError(f'Invalid action name {name}, use a non-empty string without whitespace')
         self._name = name
@@ -35,7 +82,13 @@ class Action:
         return self._description
 
 
-class _KeyboardLayout(NamedTuple):
+@dataclass
+class KeyboardLayout:
+    """
+    Concrete mapping from keys to actions
+
+    Do not instantiate this class directly, but create it via the matching `KeyboardConfigurator`.
+    """
     actions_by_key: Dict[int, str]
     actions_by_scancode: Dict[int, str]
     help: List[Tuple[str, str]]
@@ -47,7 +100,13 @@ class _KeyboardLayout(NamedTuple):
         return self.actions_by_scancode.get(scancode, None)
 
 
-class _KeyboardConfigurator(Configurator):
+class KeyboardConfigurator(Configurator):
+    """
+    Configurator for subclasses of `KeyboardHandler`
+
+    Do not instantiate this class directly, but create it from a subclass of `KeyboardHandler` via the
+    `configurator <async2v.components.pygame.keyboard.KeyboardHandler.configurator>` class method.
+    """
 
     def __init__(self, actions: List[Action]):
         self._actions = actions
@@ -67,7 +126,7 @@ class _KeyboardConfigurator(Configurator):
         help = 'Create a keyboard layout file containing the default layout'
         needs_app = False
 
-        def __init__(self, configurator: '_KeyboardConfigurator'):
+        def __init__(self, configurator: 'KeyboardConfigurator'):
             self._configurator = configurator
 
         def add_arguments(self, parser: argparse.ArgumentParser):
@@ -80,9 +139,9 @@ class _KeyboardConfigurator(Configurator):
         def __call__(self, args, app: Application = None):
             self._configurator.save_default_layout(args.keyboard_layout, args.verbose_layout)
 
-    def layout_from_args(self, args) -> _KeyboardLayout:
+    def layout_from_args(self, args) -> KeyboardLayout:
         """
-        Create a keyboard layout. Use this to construct an instance of the KeyboardHandler subclass this configurator
+        Create a keyboard layout. Use this to construct an instance of the `KeyboardHandler` subclass this configurator
         was created from.
         """
         if os.path.isfile(args.keyboard_layout):
@@ -99,7 +158,7 @@ class _KeyboardConfigurator(Configurator):
         if count > 1:
             raise ConfigurationError(f'Duplicate keyboard action {action}')
 
-    def load_layout(self, path: str) -> _KeyboardLayout:
+    def load_layout(self, path: str) -> KeyboardLayout:
         logger = logwood.get_logger(self.__class__.__name__)
         bindings_by_action = {}
         with open(path) as f:
@@ -125,16 +184,16 @@ class _KeyboardConfigurator(Configurator):
                 self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, bindings)
         for action_name in bindings_by_action:
             logger.warning(f'Extra keybindings for unknown action {action_name}')
-        return _KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
+        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
-    def default_layout(self) -> _KeyboardLayout:
+    def default_layout(self) -> KeyboardLayout:
         actions_by_key = {}
         actions_by_scancode = {}
         help_texts = []
         for action in self._actions:
             help_texts.append((action.description or action.name, ', '.join(action.defaults) or '<unassigned>'))
             self._parse_bindings_for_action(actions_by_key, actions_by_scancode, action.name, action.defaults)
-        return _KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
+        return KeyboardLayout(actions_by_key=actions_by_key, actions_by_scancode=actions_by_scancode, help=help_texts)
 
     def save_default_layout(self, path: str, verbose: bool = False):
         lines = []
@@ -192,26 +251,90 @@ class _KeyboardConfigurator(Configurator):
 
 
 class KeyboardHandler(SubComponent):
-    ACTIONS = []
-    COMPLETE_CAPTURE = [pygame.K_RETURN, pygame.K_KP_ENTER]
-    BACK = [pygame.K_BACKSPACE]
-    REPEAT_DELAY_MS = 500
-    REPEAT_INTERVAL_MS = 50
+    """
+    Abstract keyboard handler base class
+
+    Override this class to implement advanced keyboard handling. For most use cases, `EventBasedKeyboardHandler`
+    should be sufficient.
+
+    Example:
+
+    ::
+
+        class MyKeyboardHandler(KeyboardHandler):
+            ACTIONS = [
+                Action('left', ['a']),
+                Action('right', ['d']),
+            ]
+
+            def __init__(self, layout: KeyboardLayout):
+                super().__init__(layout)
+                self.output = Output('output')
+
+            def key_down(self, action: str) -> None:
+                self.output.push(['ping', action])
+
+            def key_up(self, action: str) -> None:
+                self.output.push(['pong', action])
+
+            def process(self) -> None:
+                pass
+    """
+    ACTIONS: List[Action] = []
+    """
+    :type: List[Action]
+
+    Needs to be overwritten in subclass to specify the keyboard actions for thta layout
+    """
+
+    COMPLETE_CAPTURE: List[int] = [pygame.K_RETURN, pygame.K_KP_ENTER]
+    """
+    :type: List[int]
+
+    Can be overwritten to change the keys completing text capture (see `capture_text`)
+    """
+
+    BACK: List[int] = [pygame.K_BACKSPACE]
+    """
+    :type: List[int]
+
+    Can be overwritten to change the keys removing the last character from text capture (see `capture_text`)
+    """
+
+    REPEAT_DELAY_MS: int = 500
+    """
+    :type: int
+
+    Can be overwritten to change the delay before keys are repeated on long key press during text capture
+    (see `capture_text`)
+    """
+
+    REPEAT_INTERVAL_MS: int = 50
+    """
+    :type: int
+
+    Can be overwritten to change the interval at which keys are repeated on long key press during text capture
+    (see `capture_text`)
+    """
 
     @classmethod
-    def configurator(cls) -> _KeyboardConfigurator:
+    def configurator(cls) -> KeyboardConfigurator:
         """
-        Returns a KeyboardConfigurator, which should be registered via add_configurator in the application launcher.
+        Create a configurator for the keyboard `ACTIONS` specified in the concrete handler
         """
-        return _KeyboardConfigurator(actions=cls.ACTIONS)
+        return KeyboardConfigurator(actions=cls.ACTIONS)
 
-    def __init__(self, layout: _KeyboardLayout):
+    def __init__(self, layout: KeyboardLayout):
+        """
+        :param layout: Use layout created by the `layout_from_args` method of the `KeyboardConfigurator` created for
+            that concrete `KeyboardHandler`
+        """
         self._layout = layout
         self._pressed = {}
-        self._capture = False  # type: bool
-        self._capture_id = None  # type: str
-        self._capture_text = None  # type: str
-        self._capture_completed = False  # type: bool
+        self._capture: bool = False
+        self._capture_id: str = None
+        self._capture_text: str = None
+        self._capture_completed: bool = False
 
     def push_key_down(self, key: int, scancode: int, character: str) -> None:
         """
@@ -305,23 +428,102 @@ class KeyboardHandler(SubComponent):
         raise NotImplementedError
 
 
-class KeyboardEvent(NamedTuple):
+@dataclass
+class KeyboardEvent:
+    """
+    Keyboard event denoting the state change of a `Action`
+    """
+
     action: str
+    """
+    :type: str
+    
+    Keyboard action name as defined in the corresponding `Action`
+    """
+
     active: bool
+    """
+    :type: bool
+    
+    `True` if the key mapped to this action is pressed
+    """
 
 
-class CaptureTextEvent(NamedTuple):
+@dataclass
+class CaptureTextEvent:
+    """
+    Keyboard event denoting the current capture state of text
+
+    Capturing text is triggered by calling `capture_text` on the keyboard handler.
+    """
+
     capture_id: str
+    """
+    :type: str
+    
+    Capture ide passed to `capture_text`
+    """
+
     text: str
+    """
+    :type: str
+    
+    Captured text so far
+    """
+
     complete: bool
+    """
+    :type: bool
+    
+    `True` iff this text capture flow is complete (in that case, `text` contains the complete text)
+    """
 
 
 class EventBasedKeyboardHandler(KeyboardHandler):
-    CAPTURE_TEXT_TRIGGER = 'async2v.keyboard.trigger.capture'
-    CAPTURE_TEXT_EVENT = 'async2v.keyboard.text'
-    KEYBOARD_EVENT = 'async2v.keyboard.action'
+    """
+    Abstract event based keyboard handler base class
 
-    def __init__(self, layout: _KeyboardLayout):
+    This keyboard handler emits events containing `KeyboardEvent` payload on the event key `KEYBOARD_EVENT`, when a key
+    bound to a configured `Action` is pressed or released.
+
+    Text capture can be triggered by sending an event containing a `capture_id` to the key `CAPTURE_TEXT_TRIGGER`.
+    The results of this text capture flow are emitted via events containing `CaptureTextEvent` payload on the event key
+    `CAPTURE_TEXT_EVENT`.
+
+    Example:
+
+    ::
+
+        class MyKeyboardHandler(EventBasedKeyboardHandler):
+            ACTIONS = [
+                Action('up', ['UP', 'w']),
+                Action('down', ['DOWN', 's']),
+                Action('left', ['LEFT', 'a']),
+                Action('right', ['RIGHT', 'd']),
+            ]
+
+    """
+
+    CAPTURE_TEXT_TRIGGER: str = 'async2v.keyboard.trigger.capture'
+    """
+    :type: str
+    """
+
+    CAPTURE_TEXT_EVENT: str = 'async2v.keyboard.text'
+    """
+    :type: str
+    """
+
+    KEYBOARD_EVENT: str = 'async2v.keyboard.action'
+    """
+    :type: str
+    """
+
+    def __init__(self, layout: KeyboardLayout):
+        """
+        :param layout: Use layout created by the `layout_from_args` method of the `KeyboardConfigurator` created for
+            that concrete `KeyboardHandler`
+        """
         super().__init__(layout)
         self.keyboard = Output(self.KEYBOARD_EVENT)
         self.text = Output(self.KEYBOARD_EVENT)
@@ -346,7 +548,7 @@ class EventBasedKeyboardHandler(KeyboardHandler):
 
 class _NoOpKeyboardHandler(KeyboardHandler):
     def __init__(self):
-        super().__init__(_KeyboardLayout({}, {}, []))
+        super().__init__(KeyboardLayout({}, {}, []))
 
     def key_down(self, action: str) -> None:
         pass

@@ -11,7 +11,7 @@ from async2v.cli import ApplicationLauncher
 from async2v.components.base import EventDrivenComponent
 from async2v.components.opencv.video import VideoSource, Frame
 from async2v.components.pygame.display import OpenCvDebugDisplay, OpenCvDisplay
-from async2v.components.pygame.main import _MainWindowConfigurator, MainWindow
+from async2v.components.pygame.main import MainWindowConfigurator, MainWindow
 from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseEvent, MouseMovement
 from async2v.fields import Latest, Output, Buffer, LatestBy
 
@@ -85,7 +85,7 @@ class Launcher(ApplicationLauncher):
 
     def __init__(self):
         super().__init__()
-        self.add_configurator(_MainWindowConfigurator())
+        self.add_configurator(MainWindowConfigurator())
         self.add_configurator(VideoSource.configurator())
 
     def register_application_components(self, args, app: Application):
@@ -97,7 +97,7 @@ class Launcher(ApplicationLauncher):
             OpenCvDebugDisplay(),
         ]
         mouse_handler = EventBasedMouseHandler()
-        main_window_config = _MainWindowConfigurator.config_from_args(args)
+        main_window_config = MainWindowConfigurator.config_from_args(args)
         main_window = MainWindow(displays, mouse_handler=mouse_handler, config=main_window_config)
         app.register(source, person_detector, person_display, main_window)
 
