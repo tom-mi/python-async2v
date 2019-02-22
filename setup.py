@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name='async2v',
-    version='0.1',
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     packages=find_packages(),
     install_requires=[
         'argcomplete',
