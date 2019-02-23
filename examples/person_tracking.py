@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 import asyncio
-from typing import NamedTuple, List
+from dataclasses import dataclass
+from typing import List
 
 import cv2
 
@@ -16,7 +17,8 @@ from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseEvent, 
 from async2v.fields import Latest, Output, Buffer, LatestBy
 
 
-class Person(NamedTuple):
+@dataclass
+class Person:
     x: int
     y: int
     w: int

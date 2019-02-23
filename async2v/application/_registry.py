@@ -1,4 +1,5 @@
-from typing import Dict, List, Union, NamedTuple, Generic, TypeVar
+from dataclasses import dataclass
+from typing import Dict, List, Union, Generic, TypeVar
 
 from async2v.components.base import Component, IteratingComponent, SubComponent, ContainerMixin, EventDrivenComponent, \
     BareComponent
@@ -21,7 +22,8 @@ class FieldNode(Generic[F]):
         return self.field.key
 
 
-class ComponentNode(NamedTuple):
+@dataclass
+class ComponentNode:
     component: Union[Component, SubComponent]
     inputs: List[FieldNode[InputField]]
     outputs: List[FieldNode[Output]]

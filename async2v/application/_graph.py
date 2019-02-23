@@ -1,18 +1,20 @@
-from typing import List, NamedTuple
+from dataclasses import dataclass
+from typing import List
 
 import graphviz
 
-from . import Registry
-from ._registry import ComponentNode, FieldNode
 from async2v.components.base import IteratingComponent
 from async2v.fields import DoubleBufferedField
+from . import Registry
+from ._registry import ComponentNode, FieldNode
 
 
 def get_formats() -> List[str]:
     return list(graphviz.FORMATS)
 
 
-class Link(NamedTuple):
+@dataclass
+class Link:
     key: str
     source_component: str
     source_field_id: str
