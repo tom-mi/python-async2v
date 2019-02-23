@@ -6,6 +6,12 @@
 async2v
 =======
 
+.. image:: https://travis-ci.com/tom-mi/python-async2v.svg?branch=master
+    :target: https://travis-ci.com/tom-mi/python-async2v
+
+.. image:: https://readthedocs.org/projects/async2v/badge/?version=latest
+    :target: https://async2v.readthedocs.io/
+
 Framework for building computer-vision prototypes.
 
 It is based on `asyncio <https://docs.python.org/3/library/asyncio.html>`_.
