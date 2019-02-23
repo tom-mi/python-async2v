@@ -7,6 +7,9 @@ async2v
 .. image:: https://readthedocs.org/projects/async2v/badge/?version=latest
     :target: https://async2v.readthedocs.io/
 
+.. image:: https://badge.fury.io/py/async2v.svg
+    :target: https://badge.fury.io/py/async2v
+
 Framework for building computer-vision prototypes.
 
 It is based on `asyncio <https://docs.python.org/3/library/asyncio.html>`_.
