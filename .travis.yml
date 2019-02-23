@@ -13,4 +13,5 @@ deploy:
   on:
     tags: true
     python: 3.7-dev
+    repo: tom-mi/python-async2v
   distributions: bdist_wheel
