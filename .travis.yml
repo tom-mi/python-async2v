@@ -1,7 +1,16 @@
 sudo: false
 language: python
 python:
-  - "3.6"
-  - "3.7-dev"
+- "3.6"
+- "3.7-dev"
 install: pip install tox-travis
 script: tox
+deploy:
+  provider: pypi
+  user: tom-mi
+  password:
+    secure: "EuZsehA+QQDXlsUGZFQavz4OMDPs2tR3B0o39mMIuAI7/YKNA5LvD659oW8tUU/uxDbCdsUSvvxMutuapDrfHDp0WXNDdleQdzh/V6ImFNQdrncqkvTfa/gLfongc72M6FxXgf2T+oUTsUdfE8KKqCE3BZMqJmjwydg6IfM5cXpSxnG5vUh6imyDaTSfOmpOoSDCAjUPI9vHYe0ABL7RQ/8cDReCDKiyg4ebFrlfLMDxSxLvD4z9cUkm05M0Us2iwCJSawpN/qhq5P44wAW8JpaN+9YEeBCTnSUBwqL1wf4wMq2Jq+HsuXocjyIAdNSQl/fzGOs7EZ9AksVz2+E55RBAAcYziWLUOhoEasXCcD3QrIwQsa65uhfYxYooI1nDvj6nmNkmKDPDhVKXbxeubqQ3oAsFvurH9pAm4yFK3a1CF+9VZpgOI3PTe8FdT8w1UqYDpdLD1vCY1MywFXNVdtBHMQ3Jszzok3/ybYhG/PwTrOK2XHjnmBgBUo64wa12vlj+kQ45EpBcFOlUoEcBgMvaG0Vf8De9tHoZMg23SXIl0zY1ZTzxG6ugIpWmci9ww/bjY9CAfHmYUJBM1Tn2Uv54KIFHLskzd7pGoRfSV0WS92yB0ezBtySFFwx5R+kCHyxgndJh7MX9h5QPZzb0a/im8uZStG7/ro5zI6uoyMs="
+  on:
+    tags: true
+    python: 3.7-dev
+  distributions: bdist_wheel
