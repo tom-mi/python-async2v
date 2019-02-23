@@ -5,6 +5,10 @@ with open('README.rst') as f:
 
 setup(
     name='async2v',
+    license='MIT',
+    author='Thomas Reifenberger',
+    author_email='tom-mi at rfnbrgr.de',
+    description='Framework for building computer-vision prototypes',
     long_description=long_description,
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
@@ -28,4 +32,9 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
     ],
+    project_urls={
+        'Source on GitHub': 'https://github.com/tom-mi/python-async2v',
+        'Documentation': 'https://async2v.readthedocs.io/',
+        'Tests on Travis CI': 'https://travis-ci.com/tom-mi/python-async2v',
+    },
 )
