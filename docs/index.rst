@@ -11,6 +11,7 @@ Framework for building computer-vision prototypes.
 It is based on `asyncio <https://docs.python.org/3/library/asyncio.html>`_.
 To get the most out of it, `pygame <https://www.pygame.org/>`_ and `OpenCV <https://opencv.org/>`_ are required.
 
+this is |version|
 **Write less boilerplate, instead focus on the interesting things.**
 
 

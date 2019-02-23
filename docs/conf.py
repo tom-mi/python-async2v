@@ -15,7 +15,7 @@ copyright = '2019, Thomas Reifenberger'
 author = 'Thomas Reifenberger'
 
 # The short X.Y version
-version = ''
+version = 'foo'
 # The full version, including alpha/beta/rc tags
 release = ''
 
@@ -82,7 +82,6 @@ autodoc_default_options = {
 }
 autoclass_content = 'both'
 autodoc_inherit_docstrings = False
-
 
 
 def setup(app):
