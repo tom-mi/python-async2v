@@ -7,7 +7,6 @@ setup(
     name='async2v',
     license='MIT',
     author='Thomas Reifenberger',
-    author_email='tom-mi at rfnbrgr.de',
     description='Framework for building computer-vision prototypes',
     long_description=long_description,
     use_scm_version=True,
