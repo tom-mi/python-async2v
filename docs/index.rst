@@ -17,6 +17,7 @@ To get the most out of it, `pygame <https://www.pygame.org/>`_ and `OpenCV <http
 .. toctree::
    :maxdepth: 2
 
+   quickstart
    concepts
 
 API Documentation
