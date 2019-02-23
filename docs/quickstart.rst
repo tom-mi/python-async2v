@@ -1,7 +1,11 @@
 Quickstart
 ==========
 
-TODO install
+Install ``async2v`` with the extra dependencies needed for ``opencv`` and ``pygame`` support:
+
+::
+
+    pip install async2v[pygame,opencv]
 
 Run one of the examples:
 

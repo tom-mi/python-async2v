@@ -17,6 +17,8 @@ To get the most out of it, `pygame <https://www.pygame.org/>`_ and `OpenCV <http
 
 **Write less boilerplate, instead focus on the interesting things.**
 
+`Quickstart <https://async2v.readthedocs.io/en/latest/quickstart.html>`_
+
 Links
 -----
 
