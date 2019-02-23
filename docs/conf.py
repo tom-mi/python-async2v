@@ -15,7 +15,7 @@ copyright = '2019, Thomas Reifenberger'
 author = 'Thomas Reifenberger'
 
 # The short X.Y version
-version = 'foo'
+version = ''
 # The full version, including alpha/beta/rc tags
 release = ''
 
