@@ -41,6 +41,7 @@ class Application(threading.Thread):
         self._main_loop_stopped = asyncio.Event(loop=self._loop)
         self._main_loop_task: asyncio.Task = None
         self._has_error_occurred = threading.Event()
+        self._shutting_down = threading.Event()
 
     def register(self, *components: Component) -> None:
         """
@@ -181,6 +182,9 @@ class Application(threading.Thread):
         runner.stop()
 
     async def _shutdown(self):
+        if self._shutting_down.is_set():
+            return
+        self._shutting_down.set()
         self.logger.info('Initiating shutdown')
 
         self.logger.debug('Shutting down iterating components')
