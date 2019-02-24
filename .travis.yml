@@ -4,7 +4,7 @@ python:
 - "3.6"
 - "3.7-dev"
 install: pip install tox-travis
-script: xvfb-run tox
+script: xvfb-run --server-args="-screen 0 1024x768x16" tox
 deploy:
   provider: pypi
   user: tom-mi
