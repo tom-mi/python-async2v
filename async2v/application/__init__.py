@@ -1,13 +1,13 @@
 import asyncio
 import queue
+import threading
 import time
-from threading import Thread
 from typing import Dict, List
 
 import logwood
 
 from async2v.components.base import Component, IteratingComponent
-from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT
+from async2v.event import REGISTER_EVENT, SHUTDOWN_EVENT, Event, DEREGISTER_EVENT, SHUTDOWN_DUE_TO_ERROR
 from ._registry import Registry
 from ._runner import create_component_runner, BaseComponentRunner
 
@@ -16,7 +16,7 @@ DRAIN_QUIET_PERIOD_SECONDS = 1
 TASK_SHUTDOWN_TIMEOUT_SECONDS = 5
 
 
-class Application(Thread):
+class Application(threading.Thread):
     """
     Manages the lifecycle of an async2v application at construction and runtime
 
@@ -31,15 +31,16 @@ class Application(Thread):
         super().__init__()
         self.logger = logwood.get_logger(self.__class__.__name__)
         self._registry = Registry()
-        self._queue = queue.Queue()  # type: queue.Queue
-        self._last_read_from_queue = 0  # type: float
-        self._component_runners = {}  # type: Dict[Component, BaseComponentRunner]
-        self._component_runner_tasks = {}  # type: Dict[Component, asyncio.Task]
-        self._internal_tasks = []  # type: List[asyncio.Task]
-        self._loop = asyncio.new_event_loop()  # type: asyncio.AbstractEventLoop
+        self._queue: queue.Queue = queue.Queue()
+        self._last_read_from_queue: float = 0
+        self._component_runners: Dict[Component, BaseComponentRunner] = {}
+        self._component_runner_tasks: Dict[Component, asyncio.Task] = {}
+        self._internal_tasks: List[asyncio.Task] = []
+        self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._internal_tasks_stopped = asyncio.Event(loop=self._loop)
         self._main_loop_stopped = asyncio.Event(loop=self._loop)
-        self._main_loop_task = None  # type: asyncio.Task
+        self._main_loop_task: asyncio.Task = None
+        self._has_error_occurred = threading.Event()
 
     def register(self, *components: Component) -> None:
         """
@@ -88,6 +89,13 @@ class Application(Thread):
         self._queue.put(Event(SHUTDOWN_EVENT))
         self.join()
 
+    def has_error_occurred(self) -> bool:
+        """
+        Returns `True` if the application has been shut down or is being shut down due to an uncaught Exception in
+        one of the components.
+        """
+        return self._has_error_occurred.is_set()
+
     def run(self) -> None:
         """
         Implementation of the application thread. Don't call this method directly, use :py:func:`start` instead.
@@ -121,10 +129,14 @@ class Application(Thread):
                 pass
             except Exception:
                 self.logger.exception('Unexpected error')
+                self._has_error_occurred.set()
                 await self._shutdown()
 
     def _handle_event(self, event: Event):
         if event.key == SHUTDOWN_EVENT:
+            self._create_task_with_error_handler(self._shutdown(), self.logger)
+        if event.key == SHUTDOWN_DUE_TO_ERROR:
+            self._has_error_occurred.set()
             self._create_task_with_error_handler(self._shutdown(), self.logger)
         elif event.key == REGISTER_EVENT:
             self._do_register(event.value)
@@ -229,6 +241,6 @@ class Application(Thread):
                 logger.warning('Task was cancelled')
             except Exception:
                 logger.exception(f'Unexpected error')
-                self._queue.put(Event(SHUTDOWN_EVENT))
+                self._queue.put(Event(SHUTDOWN_DUE_TO_ERROR))
 
         return callback

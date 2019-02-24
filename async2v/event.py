@@ -29,6 +29,16 @@ Internal event key used to trigger application shutdown.
 Don't use directly - To shutdown, call `shutdown` from within a component.
 """
 
+SHUTDOWN_DUE_TO_ERROR = 'async2v.shutdown_due_to_error'
+"""
+:type: str
+
+Internal event key used to trigger application shutdown due to an uncaught exception in one of the components.
+
+Don't use directly. From a `EventDrivenComponent` or `IteratingComponent`, shutdown can be triggered by raising an
+exception within the processing logic.
+"""
+
 OPENCV_FRAME_EVENT = 'async2v.opencv.frame'
 """
 :type: str

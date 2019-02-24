@@ -5,10 +5,10 @@ from typing import TypeVar, Generic
 
 import logwood
 
-from async2v.application.metric import Fps, Duration
 from async2v.application._registry import ComponentNode
+from async2v.application.metric import Fps, Duration
 from async2v.components.base import IteratingComponent, EventDrivenComponent, BareComponent
-from async2v.event import SHUTDOWN_EVENT, Event, FPS_EVENT, DURATION_EVENT
+from async2v.event import Event, FPS_EVENT, DURATION_EVENT, SHUTDOWN_DUE_TO_ERROR
 from async2v.fields import DoubleBufferedField, AveragingOutput
 
 C = TypeVar('C', BareComponent, EventDrivenComponent, IteratingComponent)
@@ -75,7 +75,7 @@ class IteratingComponentRunner(BaseComponentRunner):
                 await self._component.process()
             except Exception:
                 self.logger.exception('Unexpected error')
-                self._queue.put(Event(SHUTDOWN_EVENT))
+                self._queue.put(Event(SHUTDOWN_DUE_TO_ERROR))
 
             duration = time.time() - start
             await asyncio.sleep(desired_delta - duration)
@@ -122,7 +122,7 @@ class EventDrivenComponentRunner(BaseComponentRunner[EventDrivenComponent]):
                 await self._component.process()
             except Exception:
                 self.logger.exception('Unexpected error')
-                self._queue.put(Event(SHUTDOWN_EVENT))
+                self._queue.put(Event(SHUTDOWN_DUE_TO_ERROR))
 
             duration = time.time() - start
             self._publish_duration(duration)

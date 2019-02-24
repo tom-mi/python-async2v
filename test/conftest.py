@@ -17,7 +17,7 @@ def configure_logging():
 
 
 @pytest.fixture
-def app(configure_logging):
+def app(configure_logging) -> Application:
     return Application()
 
 
