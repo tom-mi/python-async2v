@@ -12,6 +12,9 @@ def test_video_source(app, video_source):
     app.start()
     app.join(10)
 
+    assert not app.is_alive()
+    assert not app.has_error_occurred()
+
     assert len(sink.log) == 150
     assert isinstance(sink.log[0], Frame)
     assert sink.log[0].width == 1280
@@ -25,6 +28,9 @@ def test_simple_sink(app, video_source):
     app.register(video_source, sink)
     app.start()
     app.join(10)
+
+    assert not app.is_alive()
+    assert not app.has_error_occurred()
 
 
 class SampleSink(EventDrivenComponent):
