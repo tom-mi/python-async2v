@@ -7,7 +7,7 @@ def test_simple_application(app, video_source):
     main_window = MainWindow(displays=displays)
     app.register(video_source, main_window)
     app.start()
-    app.join(20)
+    app.join(30)
 
     assert not app.is_alive()
     assert not app.has_error_occurred()
