@@ -69,6 +69,7 @@ class MainWindowConfigurator(Configurator):
     """
     Configurator for `MainWindow`
     """
+
     class ListResolutionCommand(Command):
         name = 'list-resolutions'
         help = 'List supported fullscreen resolutions'
@@ -157,7 +158,12 @@ class MainWindow(IteratingComponent, ContainerMixin):
             raise ConfigurationError('Currently, no more than 9 displays are supported')
 
         self._fps = fps  # type: int
-        if config.fullscreen:
+        if config is None:
+            self._display_config = {
+                False: _DEFAULT_CONFIG,
+                True: _DEFAULT_FULLSCREEN_CONFIG,
+            }
+        elif config.fullscreen:
             self._display_config = {
                 False: _DEFAULT_CONFIG,
                 True: config,
@@ -167,11 +173,11 @@ class MainWindow(IteratingComponent, ContainerMixin):
                 False: config,
                 True: _DEFAULT_FULLSCREEN_CONFIG,
             }
-        self._currently_fullscreen = config.fullscreen  # type: bool
+        self._currently_fullscreen: bool = config.fullscreen if config else False
 
-        self._displays = list(displays)  # type: List[Display]
-        self._current_display = 0  # type: int
-        self._surface = None  # type: pygame.Surface
+        self._displays: List[Display] = list(displays)
+        self._current_display: int = 0
+        self._surface: pygame.Surface = None
 
         self._aux_display = None
         self._aux_surface = None
