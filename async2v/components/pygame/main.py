@@ -268,7 +268,7 @@ class MainWindow(IteratingComponent, ContainerMixin):
 
         flags = self._get_best_flags_for_config(config)
         self.logger.info(f'Setting display mode to {config}')
-        self._surface = pygame.display.set_mode(resolution, flags, 24)
+        self._surface = pygame.display.set_mode(resolution, flags)
 
     def _get_best_flags_for_config(self, config: DisplayConfiguration):
         if config.fullscreen:

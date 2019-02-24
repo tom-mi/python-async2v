@@ -91,7 +91,8 @@ class Menu:
         available_width = surface.get_width() - width
         available_height = surface.get_height() - total_height
 
-        bg_surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
+        # TODO There might be a more elegant way to ensure the bit depth is sufficient
+        bg_surface = pygame.Surface((width, total_height), pygame.SRCALPHA, depth=max(surface.get_bitsize(), 16))
         if self.bgcolor is not None:
             bg_surface.fill(self.bgcolor)
 
