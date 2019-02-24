@@ -3,10 +3,8 @@ language: python
 python:
 - "3.6"
 - "3.7-dev"
-services:
-- xvfb
 install: pip install tox-travis
-script: tox
+script: xvfb-run tox
 deploy:
   provider: pypi
   user: tom-mi
