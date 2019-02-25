@@ -136,7 +136,7 @@ class _DefaultConfigurator(Configurator):
                                help='Output format')
 
         def __call__(self, args, app: Application = None):
-            graph = ApplicationGraph(app.registry)
+            graph = ApplicationGraph(app._registry)
             if args.source:
                 print(graph.source())
             else:
