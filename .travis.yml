@@ -3,6 +3,8 @@ language: python
 python:
 - "3.6"
 - "3.7-dev"
+before_install:
+- sudo apt-get install graphviz
 install: pip install tox-travis
 script: xvfb-run tox
 deploy:
