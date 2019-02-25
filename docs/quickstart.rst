@@ -24,3 +24,23 @@ Use the ``--help`` option to display configuration possibilities and discover av
     ./terminator_vision.py run --help
     ./terminator_vision.py --help
 
+
+Get your hands dirty
+--------------------
+
+Enough playing around – time to take a closer look at the example. First, create a graph of the
+application:
+
+::
+
+    ./terminator_vision.py graph
+
+This creates a graph file in the current directory (``graph.pdf`` as default, try ``--format``).
+
+.. image:: images/terminator_graph.svg
+
+Each box corresponds to one `Component` instance in the code. With that overview it should be easy to
+modify or add components in the example.
+
+That's the end of the Quickstart guide. If you prefer a top-down approach, head over to the
+`../concepts` section.

@@ -45,10 +45,10 @@ class TerminatorFilter(EventDrivenComponent):
          [2. * 0.114, 2. * 0.587, 2. * 0.299, 0.]])
 
     def __init__(self):
-        self.source = Latest('source', trigger=True)  # type: Latest[Frame]
+        self.source: Latest[Frame] = Latest('source', trigger=True)
         self.faces = Latest('faces')
-        self.output = Output('terminator')  # type: Output[Frame]
-        self.debug_output = Output(OPENCV_FRAME_EVENT)  # type: Output[Frame]
+        self.output: Output[Frame] = Output('terminator')
+        self.debug_output: Output[Frame] = Output(OPENCV_FRAME_EVENT)
 
     async def process(self):
         if not self.source.value:
@@ -69,7 +69,7 @@ class FaceDetector(EventDrivenComponent):
     FACE_CASCADE = os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_default.xml')
 
     def __init__(self):
-        self.source = Latest('source', trigger=True)  # type: Latest[Frame]
+        self.source: Latest[Frame] = Latest('source', trigger=True)
         self.face_cascade = cv2.CascadeClassifier(self.FACE_CASCADE)
         self.output = Output('faces')
 
