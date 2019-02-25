@@ -63,10 +63,11 @@ def pygame_launcher(configure_logging):
     return PygameLauncher()
 
 
-def test_graph(tmp_path: Path, simple_launcher):
+def test_graph(tmp_path: Path, simple_launcher, video_file):
     graph_path = tmp_path / 'graph'
     pdf_path = tmp_path / 'graph.pdf'
-    simple_launcher.main(['graph', '--output', str(graph_path)])
+    # We need a source file here, as in the CI environment there is no camera
+    simple_launcher.main(['graph', '--output', str(graph_path), '--source-file', video_file])
 
     assert graph_path.exists()
     assert graph_path.open().read().startswith('digraph')
@@ -78,10 +79,11 @@ def test_run(simple_launcher, video_file):
     simple_launcher.main(['run', '--source-file', video_file])
 
 
-def test_pygame_graph(tmp_path: Path, pygame_launcher):
+def test_pygame_graph(tmp_path: Path, pygame_launcher, video_file):
     graph_path = tmp_path / 'graph'
     pdf_path = tmp_path / 'graph.pdf'
-    pygame_launcher.main(['graph', '--output', str(graph_path)])
+    # We need a source file here, as in the CI environment there is no camera
+    pygame_launcher.main(['graph', '--output', str(graph_path), '--source-file', video_file])
 
     assert graph_path.exists()
     assert graph_path.open().read().startswith('digraph')

@@ -10,7 +10,7 @@ def test_video_source(app, video_source):
 
     app.register(video_source, sink)
     app.start()
-    app.join(10)
+    app.join(20)
 
     assert not app.is_alive()
     assert not app.has_error_occurred()
@@ -27,7 +27,7 @@ def test_simple_sink(app, video_source):
 
     app.register(video_source, sink)
     app.start()
-    app.join(10)
+    app.join(20)
 
     assert not app.is_alive()
     assert not app.has_error_occurred()
