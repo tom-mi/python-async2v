@@ -97,7 +97,7 @@ class ApplicationGraph:
                     <td width="120">{left_column}</td>
                     <td width="40"></td>
                     <td width="120">{right_column}</td>
-                </tr> 
+                </tr>
                 {sub_component_html}
             </table>'''
 

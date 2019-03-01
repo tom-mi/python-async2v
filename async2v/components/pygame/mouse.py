@@ -84,14 +84,14 @@ class MouseRegion:
     rect: pygame.Rect
     """
     :type: pygame.Rect
-    
+
     Location of the mouse region on pygame surface
     """
 
     original_size: Tuple[int, int]
     """
     :type: Tuple[int, int]
-    
+
     Reference dimensions (width, height) to calculate mouse positions to (e.g. in coordinates of drawn OpenCV image)
     """
 
@@ -108,28 +108,28 @@ class MouseMovement:
     region: MouseRegion
     """
     :type: MouseRegion
-    
+
     Region this movement was registered on
     """
 
     position: Tuple[int, int]
     """
     :type: Tuple[int, int]
-    
+
     Position in pixels on pygame surface
     """
 
     movement: Tuple[int, int]
     """
     :type: Tuple[int, int]
-    
+
     Movement in pixels on pygame surface
     """
 
     buttons: Dict[MouseButton, bool]
     """
     :type: Dict[MouseButton, bool]
-    
+
     State of all mouse buttons (`True` for pressed buttons)
     """
 
@@ -164,14 +164,14 @@ class MouseEvent:
     region: MouseRegion
     """
     :type: MouseRegion
-    
+
     Region this movement was registered on
     """
 
     position: Tuple[int, int]
     """
     :type: Tuple[int, int]
-    
+
     Position in pixels on pygame surface
     """
 
@@ -183,7 +183,7 @@ class MouseEvent:
     button: MouseButton = None
     """
     :type: MouseButton
-    
+
     Button that was pressed or released if `event_type` is `UP` or `DOWN`, `None` otherwise
     """
 

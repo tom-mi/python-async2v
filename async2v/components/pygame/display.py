@@ -47,7 +47,7 @@ class AuxiliaryDisplayConfig:
     resolution: Tuple[int, int]
     """
     :type: Tuple[int, int]
-    
+
     Resolution (width, height)
     """
 

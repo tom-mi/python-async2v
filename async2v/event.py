@@ -89,21 +89,21 @@ class Event(Generic[T]):
         self.key: str = key
         """
         :type: str
-        
+
         Address that connects output to input `fields`
         """
 
         self.timestamp: float = timestamp
         """
         :type: float
-        
+
         Timestamp of the event in seconds since the epoch
         """
 
         self.value: T = value
         """
         :type: T
-        
+
         Payload
         """
 

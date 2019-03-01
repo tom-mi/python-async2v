@@ -437,14 +437,14 @@ class KeyboardEvent:
     action: str
     """
     :type: str
-    
+
     Keyboard action name as defined in the corresponding `Action`
     """
 
     active: bool
     """
     :type: bool
-    
+
     `True` if the key mapped to this action is pressed
     """
 
@@ -460,21 +460,21 @@ class CaptureTextEvent:
     capture_id: str
     """
     :type: str
-    
+
     Capture ide passed to `capture_text`
     """
 
     text: str
     """
     :type: str
-    
+
     Captured text so far
     """
 
     complete: bool
     """
     :type: bool
-    
+
     `True` iff this text capture flow is complete (in that case, `text` contains the complete text)
     """
 

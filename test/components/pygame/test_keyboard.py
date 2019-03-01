@@ -24,8 +24,8 @@ def layout_file(tmpdir):
     file.write(textwrap.dedent('''
         forward UP KP8
         left    sc_38   # this is a comment
-            # empty        
-            
+            # empty
+
         sideways LEFT
     ''').strip())
     return str(file)

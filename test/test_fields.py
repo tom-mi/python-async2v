@@ -93,4 +93,3 @@ def test_averaging_output_field():
     assert q.qsize() == 2
     assert q.get().value == 1.5
     assert q.get().value == 5.5
-

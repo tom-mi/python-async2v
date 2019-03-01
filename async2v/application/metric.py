@@ -12,21 +12,21 @@ class Fps:
     component_id: str
     """
     :type: str
-    
-    `component id <Component.id>` of emitting component 
+
+    `component id <Component.id>` of emitting component
     """
 
     current: float
     """
     :type: float
-    
+
     Current number of frames per second
     """
 
     target: int
     """"
     :type: int
-    
+
     Target frames per second configured in component
     """
 
@@ -50,7 +50,7 @@ class Duration:
     component_id: str
     """
     :type: str
-    
+
     `component id <Component.id>` of emitting component
     """
 
