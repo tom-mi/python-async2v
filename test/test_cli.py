@@ -75,7 +75,7 @@ def test_graph(tmp_path: Path, simple_launcher, video_file):
     assert pdf_path.open('rb').read().startswith(b'%PDF-')
 
 
-def test_run(simple_launcher, video_file):
+def test_run(simple_launcher, video_file, highgui_test_skipper):
     simple_launcher.main(['run', '--source-file', video_file])
 
 

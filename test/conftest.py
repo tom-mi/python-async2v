@@ -31,3 +31,12 @@ def video_source(video_file):
     from async2v.components.opencv.video import VideoSource, VideoSourceConfig
     source_config = VideoSourceConfig(path=video_file, fps=200)  # Pass a high frame rate to speed up test
     return VideoSource(source_config, key='source')
+
+
+@pytest.fixture(scope='session')
+def highgui_test_skipper(request):
+    session = request.node
+    if len(session.items) > 1:
+        pytest.skip('Skipping highgui test, as multiple tests are executed. '
+                    'Running multiple highgui tests in one test session does not work. '
+                    'Please execute single highgui tests manually.')

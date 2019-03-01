@@ -22,7 +22,7 @@ def test_video_source(app, video_source):
     assert sink.log[0].channels == 3
 
 
-def test_simple_sink(app, video_source):
+def test_simple_sink(app, video_source, highgui_test_skipper):
     sink = SimpleDisplaySink('source')
 
     app.register(video_source, sink)
