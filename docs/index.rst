@@ -28,6 +28,7 @@ To get the most out of it, `pygame <https://www.pygame.org/>`_ and `OpenCV <http
 
    quickstart
    concepts
+   tutorial/index
 
 API Documentation
 -----------------
