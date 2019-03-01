@@ -3,3 +3,4 @@ Sphinx
 sphinx-autodoc-typehints
 sphinxcontrib-asyncio
 better-apidoc
+pycodestyle
