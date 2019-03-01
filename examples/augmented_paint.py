@@ -11,8 +11,8 @@ from async2v.application import Application
 from async2v.cli import ApplicationLauncher
 from async2v.components.base import EventDrivenComponent
 from async2v.components.opencv.projector import ProjectorDriver2d
-from async2v.components.opencv.video import VideoSource, Frame
-from async2v.components.pygame.display import OpenCvDebugDisplay, AuxiliaryOpenCvDisplay, OpenCvDisplay
+from async2v.components.opencv.video import Frame
+from async2v.components.pygame.display import OpenCvDebugDisplay, OpenCvDisplay
 from async2v.components.pygame.gui import Menu, Button, Label
 from async2v.components.pygame.main import MainWindow
 from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseMovement, MouseEvent, MouseButton, MouseRegion
@@ -39,7 +39,7 @@ class PaintController(EventDrivenComponent):
             return
 
         if self.clear_canvas.updated:
-                self._canvas = None
+            self._canvas = None
 
         if self._canvas is None:
             self._canvas = np.zeros(self.source.value.image.shape, dtype='uint8')
