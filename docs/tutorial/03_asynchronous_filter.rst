@@ -12,8 +12,8 @@ a perfect example for this chapter. Also, the person detection is performance-hu
 to show the problem we get with the synchronous approach.
 
 
-Modify the filter to detect people
-----------------------------------
+Try synchronous filter first
+----------------------------
 
 Apart from a bit of renaming, we modify the filter to do two things:
 
@@ -59,7 +59,7 @@ drawing them on the current video images as they arrive. For this, we need to se
 persons into two components -- an asynchronous ``PersonDetectorFilter`` and a synchronous ``PersonDrawFilter``.
 
 
-.. literalinclude:: ../../examples/tutorial/03_02.py
+.. literalinclude:: ../../examples/tutorial/03_03.py
   :language: python
   :emphasize-lines: 20,22,28,34-49,66-68
 
