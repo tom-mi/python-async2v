@@ -1,5 +1,5 @@
-Tutorial - Getting Started
-==========================
+Getting Started
+===============
 
 This chapter of the tutorial guides you to creating your first application that displays a video stream from
 a connected webcam.

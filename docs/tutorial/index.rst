@@ -9,3 +9,4 @@ If you prefer a quicker, bottom-up introduction, head over to the `../quickstart
    :maxdepth: 2
 
    01_getting_started
+   02_synchronous_filter
