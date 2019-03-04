@@ -16,6 +16,7 @@ from async2v.components.pygame.display import OpenCvDisplay, OpenCvDebugDisplay
 from async2v.components.pygame.main import MainWindow, MainWindowConfigurator
 from async2v.event import OPENCV_FRAME_EVENT
 from async2v.fields import Latest, Output
+from async2v.util import run_in_executor
 
 
 class Launcher(ApplicationLauncher):
@@ -76,7 +77,7 @@ class FaceDetector(EventDrivenComponent):
     async def process(self):
         if not self.source.value:
             return
-        faces = await asyncio.get_event_loop().run_in_executor(None, self._detect_faces, self.source.value.image)
+        faces = await run_in_executor(self._detect_faces, self.source.value.image)
         self.output.push(faces)
 
     def _detect_faces(self, image):

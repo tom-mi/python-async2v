@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
-import asyncio
 from dataclasses import dataclass
 from typing import List
 
@@ -15,6 +14,7 @@ from async2v.components.pygame.display import OpenCvDebugDisplay, OpenCvDisplay
 from async2v.components.pygame.main import MainWindowConfigurator, MainWindow
 from async2v.components.pygame.mouse import EventBasedMouseHandler, MouseEvent, MouseMovement
 from async2v.fields import Latest, Output, Buffer, LatestBy
+from async2v.util import run_in_executor
 
 
 @dataclass
@@ -35,7 +35,7 @@ class PersonDetector(EventDrivenComponent):
         self.output = Output('people')
 
     async def process(self):
-        rects, weights = await asyncio.get_event_loop().run_in_executor(None, self._detect)
+        rects, weights = await run_in_executor(self._detect)
         people = [Person(*rect, weight) for rect, weight in zip(rects, weights)]
         self.output.push(people)
 

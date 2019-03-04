@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Tuple, Callable, Union
 
@@ -36,3 +37,26 @@ def length_normalizer(size: Tuple[int, int], reference: int = 600) -> Callable[[
         return int(value * scale)
 
     return normalize_to_int
+
+
+async def run_in_executor(func: Callable, *args) -> asyncio.Future:
+    """
+    Run a function in a thread pool executor.
+
+    This is a convenience wrapper for ``asyncio.get_event_loop().run_in_executor(...)``.
+
+    Use this within your components to allow the main loop to continue during expensive operations, for example:
+
+    ::
+
+        async def process(self):
+            result = await run_in_executor(self._expensive_operation, self.input.value.image)
+            self.output.push(result)
+
+    See `asyncio.loop.run_in_executor` for more information.
+
+    :param func: Expensive function or method that shall run outside the main loop
+    :param args: Arguments to pass to ``func``
+    :return: Future that will contain the to the return value of ``func`` as a result
+    """
+    return await asyncio.get_event_loop().run_in_executor(None, func, *args)
