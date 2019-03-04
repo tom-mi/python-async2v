@@ -4,6 +4,8 @@ Tutorial - Getting Started
 This chapter of the tutorial guides you to creating your first application that displays a video stream from
 a connected webcam.
 
+The code examples included in this chapter are availabe as ready-to-run examples under ``examples/tutorial/01_*.py``.
+
 Install async2v
 ---------------
 
@@ -98,3 +100,31 @@ Try out the new options and commands added by the configurator, for example:
     ./getting_started.py run --resolution 500x500
     ./getting_started.py list-resolutions
     ./getting_started.py run --fullscreen --resolution 640x480
+
+Add a video source
+------------------
+
+The final step in this chapter is adding a `VideoSource`. This is a builtin component using the OpenCV VideoSource class to read from
+cameras or files. It comes with a commandline configurator for the most common options
+(path / camera index, resolution, framerate).
+
+
+.. literalinclude:: ../../examples/tutorial/01_04.py
+  :language: python
+  :emphasize-lines: 16,23,24
+
+As the video source pushes every frame also to the builtin `opencv debug key <OPENCV_FRAME_EVENT>` which is automatically
+displayed by the `OpenCvDebugDisplay`, no more configuration is required. Run the app & explore the new options, e.g.:
+
+::
+
+    ./getting_started.py run
+    ./getting_started.py run --source-camera 1
+    ./getting_started.py run --source-file test/data/video.mp4
+    ./getting_started.py run --source-file test/data/video.mp4 --source-fps 200
+
+This is the minimal example of an async2v application. It is not much more code than the dreaded while-True loop one
+usually starts with, but it already comes with commandline configuration of video source & display,
+on-screen fps display and more.
+
+See the next chapter to learn how to implement synchronous & asynchronous video processing.

@@ -11,7 +11,7 @@ class Launcher(ApplicationLauncher):
 
     def register_application_components(self, args, app: Application):
         displays = [
-            OpenCvDebugDisplay()
+            OpenCvDebugDisplay(),
         ]
         main_window = MainWindow(displays)
         app.register(main_window)
