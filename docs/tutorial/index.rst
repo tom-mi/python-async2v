@@ -10,3 +10,4 @@ If you prefer a quicker, bottom-up introduction, head over to the `../quickstart
 
    01_getting_started
    02_synchronous_filter
+   03_asynchronous_filter
