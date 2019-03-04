@@ -17,7 +17,8 @@ class Launcher(ApplicationLauncher):
         displays = [
             OpenCvDebugDisplay()
         ]
-        app.register(MainWindow(displays, config=MainWindow.configurator().config_from_args(args)))
+        main_window = MainWindow(displays, config=MainWindow.configurator().config_from_args(args))
+        app.register(main_window)
 
 
 def main():

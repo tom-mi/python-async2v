@@ -23,8 +23,8 @@ The following code contains a minimal, although not very useful application:
   :language: python
 
 The entry point of every application is an application-specific subclass of the `ApplicationLauncher` class.
-To launch the application, the method `main` needs to be called on an instance of the custom launcher class.
-Within the custom launcher, the method `register_application_components` needs to be overridden.
+To launch the application, call the method `main <ApplicationLauncher.main>` on an instance of the custom launcher class.
+Within the custom launcher, you must override the method `register_application_components`.
 It is a callback that is called during initialization of the application.
 In this example it is empty, giving us an empty application with no components.
 
@@ -38,23 +38,21 @@ Nothing seems to happen, as there are no components being started. Stop the appl
 
 Note also the second line ``# PYTHON_ARGCOMPLETE_OK``. In combination with the ``argcomplete`` package, it
 allows to get bash completion for your application.
-See <the documentation of argcomplete `https://pypi.org/project/argcomplete/`>_ for how to activate global completion.
+See `the documentation of argcomplete <https://pypi.org/project/argcomplete/>`_ for how to activate global completion.
 
 
 Add a display
 -------------
 
-Although there is the OpenCV-based `SimpleDisplaySink`, it is recommended to use pygame-based displays.
-
-The builtin `OpenCvDebugDisplay` is a good starting point, as it does not need any configuration and can display
+The builtin pygame-based `OpenCvDebugDisplay` is a good starting point, as it does not need any configuration and can display
 data from multiple sources simultaneously.
 
-Pygame-based displays are embedded in a `MainWindow` component, which is the central application window. A `MainWindow` can have
-one or more displays.
+Pygame-based displays are embedded in a `MainWindow` component, which is the central application window.
+A `MainWindow` can have one or more displays.
 
 .. literalinclude:: ../../examples/tutorial/01_02.py
   :language: python
-  :emphasize-lines: 12-15
+  :emphasize-lines: 13-17
 
 All components must be instantiated and registered on the `Application` instance passed to the
 `register_application_components` method.
@@ -70,16 +68,15 @@ Configure the main window
 Some of the builtin components can be configured, for example it is possible to specify a resolution or enable
 fullscreen mode for the `MainWindow`. This can be done programmatically, but usually you want to switch things like that
 on the fly from the commandline. To save you from writing argparse options for that, there is builtin argparse support
-for all many components that come with async2v.
-
-The configuration process has two phases:
+for all many components that come with async2v:
 
 * Before parsing the commandline arguments, additional options are registered with the application's argparse parser.
   The right place for that is the constructor of the application launcher.
 * When instantiating and registering the components, the component-specific configuration is extracted from the parsed
   argparse args. This is done in the already known `register_application_components` method.
 
-While it is possible to directly use the application's `ArgumentParser`, there is also a reusable mechanism built into async2v.
+While it is possible to directly use the application's `ArgumentParser <argparse.ArgumentParser>`,
+there is also a reusable mechanism built into async2v.
 Both registering the arguments and constructing the component configuration from the args can be encapsulated in
 `Configurator` classes.
 

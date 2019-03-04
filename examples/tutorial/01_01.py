@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
+
 from async2v.application import Application
 from async2v.cli import ApplicationLauncher
 
