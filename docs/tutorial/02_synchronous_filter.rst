@@ -6,6 +6,7 @@ which contain the interesting processing logic.
 
 We start with the result of the previous chapter, a simple app with a debug display & a video source.
 
+The code examples included in this chapter are available as ready-to-run examples under ``examples/tutorial/02_*.py``.
 
 Add a synchronous filter
 ------------------------

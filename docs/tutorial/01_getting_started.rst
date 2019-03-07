@@ -4,7 +4,7 @@ Getting Started
 This chapter of the tutorial guides you to creating your first application that displays a video stream from
 a connected webcam.
 
-The code examples included in this chapter are availabe as ready-to-run examples under ``examples/tutorial/01_*.py``.
+The code examples included in this chapter are available as ready-to-run examples under ``examples/tutorial/01_*.py``.
 
 Install async2v
 ---------------

@@ -11,6 +11,7 @@ Because it is so simple and you can test it with your webcam and yourself runnin
 a perfect example for this chapter. Also, the person detection is performance-hungry enough (as of current hardware)
 to show the problem we get with the synchronous approach.
 
+The code examples included in this chapter are available as ready-to-run examples under ``examples/tutorial/03_*.py``.
 
 Try synchronous filter first
 ----------------------------
